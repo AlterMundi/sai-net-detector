@@ -1,0 +1,88 @@
+# Dataset directories
+data/raw/
+data/yolo/
+pyro-sdis/images/
+pyro-sdis/labels/
+
+# Large dataset files
+*.zip
+*.tar
+*.tar.gz
+*.7z
+
+# Training outputs
+outputs/
+runs/
+logs/
+*.log
+
+# Model checkpoints and weights
+*.pt
+*.pth
+*.onnx
+*.engine
+*.trt
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Jupyter
+.ipynb_checkpoints
+*.ipynb
+
+# Temporary files
+*.tmp
+*.temp
+temp/
+tmp/
+
+# CUDA cache
+.nv/
+
+# Tensorboard
+events.out.tfevents.*
