@@ -16,8 +16,9 @@ This repository focuses solely on training and developing the YOLOv8-based detec
 ## Architecture
 
 ### Data Pipeline (Detector-Specific)
-- **PyroSDIS**: Primary training dataset from Hugging Face (`pyronear/pyro-sdis`) with 33,600+ images containing smoke bounding boxes in YOLO format
-- **FASDD**: Additional dataset with 100k+ images of fire/smoke from various sources (terrestrial cameras, drones)
+- **PyroSDIS**: 33,637 images with smoke bounding boxes in YOLO format
+- **FASDD**: 95,314 images (fire/smoke) converted from COCO to YOLO format, mapped to single "smoke" class
+- **Combined**: ~129k images for smoke detection training
 
 ### Model Architecture (Detector Only)
 - **YOLOv8-s/m**: Anchor-free architecture with C2f blocks for rapid smoke/fire localization
@@ -55,44 +56,41 @@ sai-net-detector/
 
 ### Dataset Preparation
 ```bash
-# Download PyroSDIS from Hugging Face
-python scripts/export_pyrosdis_to_yolo.py \
-  --hf_repo pyronear/pyro-sdis \
-  --out data/yolo \
-  --split train val \
-  --single-cls 1
-
-# Convert FASDD to YOLO format
+# Convert FASDD to YOLO format (PyroSDIS already in YOLO format)
 python scripts/convert_fasdd_to_yolo.py \
-  --src data/raw/fasdd \
+  --src data/raw \
   --dst data/yolo \
-  --split-ratios 0.9 0.1 \
   --map-classes smoke
-
-# Extract FASDD from archive
-unzip fasdd-cv-coco.zip -d data/raw/
 ```
 
 ### Training
 
 #### YOLOv8 Detector Training
 ```bash
-# Train smoke/fire detector on PyroSDIS + FASDD
+# Optimal configuration for 2×A100 GPUs with 500GB RAM limit
 yolo detect train \
   data=configs/yolo/pyro_fasdd.yaml \
   model=yolov8s.pt \
   imgsz=960 \
   epochs=150 \
-  batch=64 \
+  batch=152 \
   device=0,1 \
-  workers=16 \
+  workers=80 \
   amp=bf16 \
   cos_lr=True \
-  hsv_h=0.015 hsv_s=0.7 hsv_v=0.4 \
-  degrees=5 translate=0.1 scale=0.5 shear=2.0 \
-  mosaic=1.0 mixup=0.1 copy_paste=0.0 \
-  name=sai_yolov8s_pyrofasdd
+  cache=ram \
+  name=sai_yolov8s_optimal
+
+# Conservative fallback configuration
+yolo detect train \
+  data=configs/yolo/pyro_fasdd.yaml \
+  model=yolov8s.pt \
+  batch=64 \
+  workers=16 \
+  name=sai_yolov8s_conservative
 ```
+
+**See `docs/training-config-optimal.md` for detailed hardware optimization.**
 
 #### Model Evaluation and Export
 ```bash
@@ -111,9 +109,9 @@ yolo export model=runs/detect/sai_yolov8s_pyrofasdd/weights/best.pt format=onnx
 - Compatible with Ultralytics YOLO training pipeline
 
 ### Model Hyperparameters
-- **YOLOv8**: `imgsz=960`, `batch=64`, `lr0=0.01`, mosaic+mixup augmentation
-- **Augmentation**: HSV jittering, rotation, translation, scaling, shearing
-- **Optimization**: Cosine LR scheduling, mixed precision training (BF16)
+- **YOLOv8s**: `imgsz=960`, `batch=152` (optimal), BF16 mixed precision
+- **Hardware optimized**: 2×A100 GPUs, 500GB RAM constraint
+- **Training time**: ~35-45 hours (2× faster than baseline)
 
 ## Data Formats
 
