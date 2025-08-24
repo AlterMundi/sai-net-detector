@@ -1,0 +1,18 @@
+# PyroSDIS Stage 2: Fine-tuning with single-class smoke detection
+# SAI-Net Two-Stage Workflow - Stage 2 Configuration
+
+# PyroSDIS Dataset Only - Single-class (smoke only)
+train: /dev/shm/rrn/sai-net-detector/data/raw/pyro-sdis/images/train
+val: /dev/shm/rrn/sai-net-detector/data/raw/pyro-sdis/images/val
+
+# Single-class configuration (smoke detection specialization)
+nc: 1                    # Single class: smoke only
+names: ['smoke']         # PyroSDIS smoke class
+single_cls: true         # Force single-class mode for fine-tuning
+
+# No test set (PyroSDIS doesn't have separate test split)
+
+# Dataset statistics for Stage 2  
+# PyroSDIS: ~33,637 images with smoke bounding boxes
+# Objective: Domain adaptation to fixed-camera smoke detection
+# Expected output: Specialized smoke detector for PyroSDIS-style scenarios

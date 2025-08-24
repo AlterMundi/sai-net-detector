@@ -92,11 +92,15 @@ Entrenamiento : DDP en 2×A100 , BF16/FP16, cosine LR , warmup.
 Métricas : mAP@0.5 y Recall para objetos pequeños (threshold bajo en conf para
 priorizar sensibilidad).
 4.2 Receta (CLI)
-Entrenar detector (DDP, 2xA100)
+Entrenar detector (DDP, 2xA100) - ACTUALIZADO
+# RECOMENDADO: usar script Python que incluye fix SGD
+python scripts/train_detector.py --config optimal
+
+# CLI alternativo (DEBE incluir optimizer=SGD)
 yolo detect train
 data=configs/yolo/pyro_fasdd.yaml
-model=yolov8s.pt imgsz=960 epochs=150 batch=64
-device=0,1 workers=16 amp=bf16 cos_lr=True
+model=yolov8s.pt imgsz=1440 epochs=150 batch=60
+device=0,1 workers=8 optimizer=SGD amp=True cos_lr=True
 hsv_h=0.015 hsv_s=0.7 hsv_v=0.4 degrees=5 translate=0.1 scale=0.
 shear=2.0
 mosaic=1.0 mixup=0.1 copy_paste=0.0

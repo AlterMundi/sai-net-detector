@@ -8,8 +8,11 @@ YOLOv8-based smoke detection for wildfire early warning systems.
 # Convert FASDD dataset
 python scripts/convert_fasdd_to_yolo.py --src data/raw --dst data/yolo --map-classes smoke
 
-# Train detector (optimal config for 2×A100)
-yolo detect train data=configs/yolo/pyro_fasdd.yaml model=yolov8s.pt batch=152 workers=80 cache=ram
+# Train detector (optimal config for 2×A100) - RECOMMENDED
+python scripts/train_detector.py --config optimal
+
+# Alternative CLI command (must include optimizer=SGD)
+yolo detect train data=configs/yolo/pyro_fasdd.yaml model=yolov8s.pt batch=60 workers=8 optimizer=SGD cache=ram
 
 # Evaluate model
 yolo detect val model=runs/detect/train/weights/best.pt data=configs/yolo/pyro_fasdd.yaml

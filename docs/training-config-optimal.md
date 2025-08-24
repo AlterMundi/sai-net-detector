@@ -13,19 +13,20 @@
 # Using training script (recommended)
 python scripts/train_detector.py --config optimal
 
-# Equivalent CLI command:
+# Equivalent CLI command (MUST include optimizer=SGD):
 yolo detect train \
   data=configs/yolo/pyro_fasdd.yaml \
   model=yolov8s.pt \
   imgsz=1440 \
   epochs=150 \
-  batch=120 \              # ÓPTIMO para 1440×808: 60×2=120 (36.1GB por GPU)
+  batch=60 \               # VALIDATED: test confirmed batch=60, workers=8
   device=0,1 \
-  workers=79 \             # Ajustado para resolución alta
-  amp=bf16 \               # A100 native BF16
+  workers=8 \              # VALIDATED: test confirmed workers=8
+  optimizer=SGD \          # CRITICAL: prevents auto-optimizer override
+  amp=True \               # Mixed precision 
   cos_lr=True \
   lr0=0.01 \
-  lrf=0.01 \               # LR final para batch 120
+  lrf=0.01 \
   momentum=0.937 \
   weight_decay=0.0005 \
   warmup_epochs=5 \

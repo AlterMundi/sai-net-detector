@@ -232,6 +232,7 @@ def train_detector(
             'workers': workers,
             'amp': amp,
             'cos_lr': cos_lr,
+            'optimizer': 'SGD',  # Force SGD optimizer (disable auto-optimizer)
             'lr0': lr0,
             'lrf': lrf,
             'momentum': momentum,
@@ -384,6 +385,178 @@ def train_conservative():
         cache="disk",
         name="sai_yolov8s_conservative_960x960"
     )
+
+def train_stage1_fasdd():
+    """
+    SAI-Net Two-Stage Training - Stage 1: FASDD Pre-training
+    
+    Multi-class training (fire + smoke) on FASDD dataset for diverse learning.
+    Uses validated hardware parameters: 1440x1440, batch=60, workers=8
+    
+    Returns:
+        Training results dictionary with checkpoint path for Stage 2
+    """
+    return train_detector(
+        data_yaml="configs/yolo/fasdd_stage1.yaml",
+        model="yolov8s.pt",
+        imgsz=1440,          # Validated resolution for small object detection
+        epochs=140,          # Stage 1: Longer training for diversity learning
+        batch=60,            # Validated batch size (30×2 GPUs)
+        device="0,1",        # 2×A100 DDP configuration
+        workers=8,           # Validated worker count (prevents spawn explosion)
+        amp=True,            # Mixed precision for efficiency
+        cos_lr=True,         # Cosine learning rate scheduler
+        lr0=0.01,            # Standard learning rate
+        lrf=0.01,            # Final learning rate factor
+        momentum=0.937,
+        weight_decay=0.0005,
+        warmup_epochs=5,     # Gradual warmup
+        warmup_momentum=0.8,
+        warmup_bias_lr=0.1,
+        # Loss weights optimized for multi-class detection
+        box=7.5,             # Emphasize bounding box accuracy
+        cls=0.5,             # Balanced classification weight
+        dfl=1.5,             # Distribution focal loss for small objects
+        # Augmentation for Stage 1 (stronger for diversity)
+        hsv_h=0.015,         # Minimal hue variation
+        hsv_s=0.7,           # Moderate saturation changes
+        hsv_v=0.4,           # Value/brightness variations
+        degrees=5,           # Minimal rotation
+        translate=0.1,       # Small translation
+        scale=0.5,           # Scale augmentation
+        shear=2.0,           # Geometric shearing
+        mosaic=1.0,          # Full mosaic augmentation for diversity
+        mixup=0.15,          # Moderate mixup for regularization
+        copy_paste=0.0,      # No copy-paste for cleaner learning
+        close_mosaic=15,     # Stop mosaic in last 15 epochs
+        cache="ram",         # RAM caching for performance
+        project="/dev/shm/rrn/sai-net-detector/runs",
+        name="sai_stage1_fasdd_multiclass",
+        single_cls=False,    # Multi-class for Stage 1
+        save_period=-1,      # Save only best and last
+        interactive=True
+    )
+
+def train_stage2_pyrosdis(stage1_checkpoint: str = None):
+    """
+    SAI-Net Two-Stage Training - Stage 2: PyroSDIS Fine-tuning
+    
+    Single-class fine-tuning (smoke only) on PyroSDIS for domain specialization.
+    Uses checkpoint from Stage 1 and reduced learning rate.
+    
+    Args:
+        stage1_checkpoint: Path to Stage 1 best.pt checkpoint
+        
+    Returns:
+        Training results dictionary with final specialized detector
+    """
+    # Auto-detect Stage 1 checkpoint if not provided
+    if stage1_checkpoint is None:
+        stage1_checkpoint = "/dev/shm/rrn/sai-net-detector/runs/sai_stage1_fasdd_multiclass/weights/best.pt"
+    
+    return train_detector(
+        data_yaml="configs/yolo/pyro_stage2.yaml",
+        model=stage1_checkpoint,  # Load Stage 1 checkpoint
+        imgsz=1440,          # Keep same resolution for consistency
+        epochs=60,           # Stage 2: Shorter fine-tuning period
+        batch=60,            # Same validated batch size
+        device="0,1",        # Same DDP configuration
+        workers=8,           # Same validated worker count
+        amp=True,            # Keep mixed precision
+        cos_lr=True,         # Keep cosine scheduler
+        lr0=0.001,           # 10× reduced learning rate for fine-tuning
+        lrf=0.01,            # Same final LR factor
+        momentum=0.937,
+        weight_decay=0.0005,
+        warmup_epochs=3,     # Shorter warmup for fine-tuning
+        warmup_momentum=0.8,
+        warmup_bias_lr=0.1,
+        # Same loss weights (optimized configuration)
+        box=7.5,
+        cls=0.5,
+        dfl=1.5,
+        # Gentler augmentation for Stage 2 (domain-specific)
+        hsv_h=0.01,          # Reduced hue variation
+        hsv_s=0.5,           # Reduced saturation changes
+        hsv_v=0.3,           # Reduced brightness variation
+        degrees=3,           # Reduced rotation
+        translate=0.05,      # Reduced translation
+        scale=0.3,           # Reduced scale augmentation
+        shear=1.0,           # Reduced shearing
+        mosaic=0.5,          # Reduced mosaic for fine-tuning
+        mixup=0.05,          # Minimal mixup
+        copy_paste=0.0,      # No copy-paste
+        close_mosaic=10,     # Earlier mosaic stop
+        cache="ram",         # Same caching strategy
+        project="/dev/shm/rrn/sai-net-detector/runs",
+        name="sai_stage2_pyrosdis_smoke_specialized",
+        single_cls=True,     # Single-class for Stage 2
+        save_period=-1,
+        interactive=True
+    )
+
+def train_two_stage_workflow():
+    """
+    Complete SAI-Net Two-Stage Training Workflow
+    
+    Executes both stages sequentially:
+    1. Stage 1: FASDD multi-class pre-training (140 epochs)
+    2. Stage 2: PyroSDIS single-class fine-tuning (60 epochs)
+    
+    Returns:
+        Dictionary with results from both stages
+    """
+    print("🚀 Starting SAI-Net Two-Stage Training Workflow")
+    print("=" * 60)
+    
+    # Stage 1: FASDD Pre-training
+    print("\n📊 STAGE 1: FASDD Multi-class Pre-training")
+    print("🎯 Objective: Learn diverse fire/smoke detection")
+    print("📈 Expected time: ~39 hours (140 epochs)")
+    print("-" * 40)
+    
+    stage1_results = train_stage1_fasdd()
+    
+    if not stage1_results['success']:
+        print("❌ Stage 1 failed, aborting two-stage workflow")
+        return {
+            'stage1_results': stage1_results,
+            'stage2_results': None,
+            'workflow_success': False,
+            'error': f"Stage 1 failure: {stage1_results['error']}"
+        }
+    
+    print(f"✅ Stage 1 completed successfully!")
+    print(f"📁 Checkpoint saved: {stage1_results['save_dir']}")
+    
+    # Stage 2: PyroSDIS Fine-tuning
+    print("\n📊 STAGE 2: PyroSDIS Single-class Fine-tuning")
+    print("🎯 Objective: Specialize for smoke-only detection")
+    print("📈 Expected time: ~8 hours (60 epochs)")
+    print("-" * 40)
+    
+    stage1_checkpoint = f"{stage1_results['save_dir']}/weights/best.pt"
+    stage2_results = train_stage2_pyrosdis(stage1_checkpoint)
+    
+    workflow_success = stage2_results['success']
+    
+    print("\n" + "=" * 60)
+    print("🏁 TWO-STAGE WORKFLOW COMPLETED")
+    
+    if workflow_success:
+        print("✅ Both stages completed successfully!")
+        print(f"📁 Final detector: {stage2_results['save_dir']}")
+        print("🎯 Ready for deployment: Specialized smoke detector")
+    else:
+        print(f"❌ Stage 2 failed: {stage2_results['error']}")
+        print("💡 Stage 1 checkpoint still available for retry")
+    
+    return {
+        'stage1_results': stage1_results,
+        'stage2_results': stage2_results,
+        'workflow_success': workflow_success,
+        'final_model_path': f"{stage2_results['save_dir']}/weights/best.pt" if workflow_success else None
+    }
 
 # Legacy aliases
 train_optimal_forced_ddp = train_optimal

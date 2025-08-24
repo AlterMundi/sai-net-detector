@@ -137,10 +137,46 @@ yolo export model=runs/detect/sai_yolov8s_optimal_1440x808/weights/best.pt forma
 - **COCO Annotations**: JSON format with bounding boxes and category mappings for FASDD dataset
 - **Single-class format**: All smoke/fire annotations mapped to class 0 ("smoke")
 
+## Training Approaches
+
+### Single-Stage Training (Current Baseline)
+- **Configuration**: Combined FASDD + PyroSDIS datasets (~129k images)
+- **Duration**: 150 epochs (~42 hours)  
+- **Performance**: mAP@0.5: 47.8% (verified)
+- **Use case**: Quick training for baseline detector
+
+### Two-Stage Training (SAI-Net Recommended)
+**Stage 1: FASDD Pre-training**
+- **Dataset**: FASDD only (~95k images), multi-class (fire + smoke)
+- **Duration**: 140 epochs (~39 hours)
+- **Objective**: Learn diverse fire/smoke detection patterns
+- **Configuration**: `configs/yolo/fasdd_stage1.yaml`
+
+**Stage 2: PyroSDIS Fine-tuning** 
+- **Dataset**: PyroSDIS only (~33k images), single-class (smoke)
+- **Duration**: 60 epochs (~8 hours)
+- **Objective**: Domain specialization for fixed-camera smoke detection
+- **Configuration**: `configs/yolo/pyro_stage2.yaml`
+- **Learning Rate**: 10× reduced (0.001 vs 0.01) for fine-tuning
+
+**Two-Stage Commands:**
+```bash
+# Complete workflow (47 total hours)
+python scripts/train_two_stage.py --full-workflow
+
+# Individual stages
+python scripts/train_two_stage.py --stage 1  # FASDD pre-training
+python scripts/train_two_stage.py --stage 2  # PyroSDIS fine-tuning
+
+# Testing configurations
+python scripts/train_two_stage.py --stage 1 --test-mode --epochs 3
+```
+
 ## Performance Targets (Detector)
 
 - **Primary Metric**: mAP@0.5 optimization with emphasis on high recall
-- **Current Performance**: mAP@0.5: 47.8% (verified in test), targeting >50% with full training
+- **Single-stage Performance**: mAP@0.5: 47.8% (verified in test)
+- **Two-stage Target**: mAP@0.5: >50% with better domain specialization
 - **Focus**: Detecting small smoke objects with minimal false negatives  
 - **Inference Speed**: 2.5ms per image (real-time capable for camera feeds)
 - **Confidence Threshold**: Low threshold (e.g., 0.25) to maximize recall for downstream verifier
