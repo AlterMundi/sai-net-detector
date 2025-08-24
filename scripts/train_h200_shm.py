@@ -29,7 +29,7 @@ def get_h200_shm_config():
     config.update({
         # Ultra-fast I/O from RAM cache
         'cache': True,              # Enable cache (images in RAM)
-        'project': '/dev/shm/sai_runs',  # Fast output directory
+        'project': '/workspace/sai-net-detector/runs',  # Save outputs to repo
         
         # Optimized for RAM-cached data
         'workers': 12,              # Can increase workers (no disk I/O bottleneck)  
@@ -90,7 +90,7 @@ def train_stage1_fasdd_shm(epochs=110, test_mode=False):
     results = model.train(**config)
     
     print(f"✅ Stage 1 completed with /dev/shm optimization!")
-    print(f"   Model: {config['project']}/{config['name']}/weights/best.pt")
+    print(f"   Model: runs/{config['name']}/weights/best.pt")
     
     return results
 
