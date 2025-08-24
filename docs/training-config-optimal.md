@@ -7,24 +7,28 @@
 - **Storage**: /dev/shm 250GB (212GB libre)
 - **Dataset**: 29GB total
 
-## Configuración Máxima Óptima
+## Configuración Máxima Óptima (1440×808)
 
 ```bash
+# Using training script (recommended)
+python scripts/train_detector.py --config optimal
+
+# Equivalent CLI command:
 yolo detect train \
   data=configs/yolo/pyro_fasdd.yaml \
   model=yolov8s.pt \
-  imgsz=960 \
+  imgsz=1440 \
   epochs=150 \
-  batch=152 \              # MÁXIMO seguro: 76×2=152 (36.2GB por GPU)
+  batch=120 \              # ÓPTIMO para 1440×808: 60×2=120 (36.1GB por GPU)
   device=0,1 \
-  workers=80 \             # MÁXIMO: 170GB RAM total con cache
+  workers=79 \             # Ajustado para resolución alta
   amp=bf16 \               # A100 native BF16
   cos_lr=True \
   lr0=0.01 \
-  lrf=0.01 \               # LR final para batch grande
+  lrf=0.01 \               # LR final para batch 120
   momentum=0.937 \
   weight_decay=0.0005 \
-  warmup_epochs=5 \        # Warmup más largo para batch 152
+  warmup_epochs=5 \
   warmup_momentum=0.8 \
   warmup_bias_lr=0.1 \
   box=7.5 \                # Énfasis en localización
@@ -36,20 +40,20 @@ yolo detect train \
   close_mosaic=15 \        # Desactivar mosaic últimas 15 épocas
   cache=ram \              # 29GB dataset cache en 500GB RAM
   project=/dev/shm/rrn/sai-net-detector/runs \
-  name=sai_yolov8s_optimal_500gb
+  name=sai_yolov8s_optimal_1440x808
 ```
 
 ## Justificación Técnica
 
-**1. `batch=152` (límite VRAM)**
-- 76 imágenes por GPU × 2 GPUs
-- 36.2GB por GPU (< 37GB límite seguro)
-- **Utilización VRAM: 92%** - máximo aprovechamiento
+**1. `batch=120` (límite VRAM para 1440×808)**
+- 60 imágenes por GPU × 2 GPUs
+- 36.1GB por GPU (< 37.5GB límite seguro)
+- **Utilización VRAM: 96%** - máximo aprovechamiento para alta resolución
 
-**2. `workers=80` (límite RAM)**  
-- 170GB RAM total (< 500GB límite)
-- **Utilización CPU: 31%** - óptimo para data loading intensivo
-- Sin bottleneck I/O con 129k imágenes
+**2. `workers=79` (optimizado para resolución)**  
+- ~36.7GB RAM total (< 500GB límite)
+- **Utilización CPU: 31%** - ajustado para I/O de imágenes 1440×808
+- Sin bottleneck I/O con 129k imágenes de alta resolución
 
 **3. `cache=ram` (aceleración crítica)**
 - 29GB en RAM para dataset completo
@@ -59,12 +63,12 @@ yolo detect train \
 
 | Métrica | Valor |
 |---------|--------|
-| Batches por época | ~850 |
-| Tiempo por época | 25-35 min |
-| Speedup vs roadmap | **2.4× más rápido** |
-| GPU utilization | 95%+ |
-| RAM utilization | 34% |
-| Total training time | **35-45 horas** |
+| Batches por época | ~1075 |
+| Tiempo por época | 30-35 min |
+| Resolución | **1440×808 (alta resolución)** |
+| GPU utilization | 96%+ |
+| RAM utilization | 7.3% |
+| Total training time | **35-40 horas** |
 
 ## Comparación vs Roadmap
 

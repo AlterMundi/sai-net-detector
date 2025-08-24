@@ -23,7 +23,7 @@ This repository focuses solely on training and developing the YOLOv8-based detec
 ### Model Architecture (Detector Only)
 - **YOLOv8-s/m**: Anchor-free architecture with C2f blocks for rapid smoke/fire localization
 - **Single-class detection**: Optimized for "smoke" class detection with high recall
-- **Input resolution**: 960x960 pixels for small object detection
+- **Input resolution**: 1440×808 pixels for high-resolution detection
 - **Output**: Bounding boxes with confidence scores for smoke/fire regions
 
 ### Training Infrastructure
@@ -68,26 +68,24 @@ python scripts/convert_fasdd_to_yolo.py \
 #### YOLOv8 Detector Training
 ```bash
 # Optimal configuration for 2×A100 GPUs with 500GB RAM limit
+python scripts/train_detector.py --config optimal
+
+# Equivalent CLI command:
 yolo detect train \
   data=configs/yolo/pyro_fasdd.yaml \
   model=yolov8s.pt \
-  imgsz=960 \
+  imgsz=1440 \
   epochs=150 \
-  batch=152 \
+  batch=120 \
   device=0,1 \
-  workers=80 \
+  workers=79 \
   amp=bf16 \
   cos_lr=True \
   cache=ram \
-  name=sai_yolov8s_optimal
+  name=sai_yolov8s_optimal_1440x808
 
-# Conservative fallback configuration
-yolo detect train \
-  data=configs/yolo/pyro_fasdd.yaml \
-  model=yolov8s.pt \
-  batch=64 \
-  workers=16 \
-  name=sai_yolov8s_conservative
+# Conservative fallback configuration  
+python scripts/train_detector.py --config conservative
 ```
 
 **See `docs/training-config-optimal.md` for detailed hardware optimization.**
@@ -95,23 +93,28 @@ yolo detect train \
 #### Model Evaluation and Export
 ```bash
 # Evaluate trained detector
-yolo detect val model=runs/detect/sai_yolov8s_pyrofasdd/weights/best.pt data=configs/yolo/pyro_fasdd.yaml
+python scripts/evaluate_detector.py --mode best
 
-# Export to ONNX for deployment
-yolo export model=runs/detect/sai_yolov8s_pyrofasdd/weights/best.pt format=onnx
+# Export for deployment
+python scripts/export_detector.py --mode best --formats onnx torchscript
+
+# Direct CLI commands:
+yolo detect val model=runs/detect/sai_yolov8s_optimal_1440x808/weights/best.pt data=configs/yolo/pyro_fasdd.yaml
+yolo export model=runs/detect/sai_yolov8s_optimal_1440x808/weights/best.pt format=onnx
 ```
 
 ## Key Configuration Files
 
-### YOLO Dataset Configuration (`pyro-sdis/data.yaml`)
-- Single class detection: `nc: 1, names: ['smoke']`
+### YOLO Dataset Configuration (`configs/yolo/pyro_fasdd.yaml`)
+- Combined PyroSDIS + FASDD datasets (~129k images total)
+- Single class detection: `nc: 1, names: ['smoke']`  
 - Paths to training/validation images and labels
 - Compatible with Ultralytics YOLO training pipeline
 
 ### Model Hyperparameters
-- **YOLOv8s**: `imgsz=960`, `batch=152` (optimal), BF16 mixed precision
-- **Hardware optimized**: 2×A100 GPUs, 500GB RAM constraint
-- **Training time**: ~35-45 hours (2× faster than baseline)
+- **YOLOv8s**: `imgsz=1440`, `batch=120` (VRAM optimized), BF16 mixed precision
+- **Hardware optimized**: 2×A100 GPUs (36.1GB VRAM per GPU), 79 workers
+- **Training time**: ~35-40 hours for high-resolution training
 
 ## Data Formats
 
