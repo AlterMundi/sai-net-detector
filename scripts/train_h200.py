@@ -32,7 +32,7 @@ def get_h200_config():
         'patience': 10,             # Early stopping
         'amp': True,                # Mixed precision
         'half': True,               # FP16 inference
-        'save_period': 5,           # Save every 5 epochs
+        'save_period': 3,           # Save every 3 epochs (per user request)
         
         # Optimizer
         'optimizer': 'SGD',

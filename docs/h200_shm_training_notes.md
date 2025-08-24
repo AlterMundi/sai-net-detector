@@ -113,8 +113,43 @@ config = {
 ### Key Technical Lesson
 **Cannot change batch size during training** - optimizer state, learning rate scaling, and BatchNorm statistics all depend on consistent batch size. Always restart from epoch 0 when changing batch configuration.
 
+## ROOT CAUSE ANALYSIS: Dataset Mixing Issue (August 24, 2024)
+
+### Critical Discovery: Wrong Training Methodology
+**Problem**: Mixed dataset training caused early overfitting (epochs 2-4)
+- Combined FASDD + PyroSDIS in single-stage training
+- Conflicting learning signals between datasets
+- Performance degraded: mAP@0.5: 51.0% → 44.2% (epochs 2→4)
+
+### Solution Implemented: Two-Stage Methodology
+Following `docs/planentrenamientoyolov8.md` specifications exactly:
+
+**Stage 1: FASDD Pre-training (Multi-class)**
+- Dataset: FASDD only (~37k images clean dataset)
+- Classes: Multi-class (fire + smoke) - `single_cls=False`
+- Epochs: 110 with early stopping patience=10
+- Objective: Learn diverse fire/smoke detection patterns
+
+**Stage 2: PyroSDIS Fine-tuning (Single-class)** 
+- Dataset: PyroSDIS only (~33k images)
+- Classes: Single-class smoke - `single_cls=True`
+- Learning Rate: 0.001 (10× reduced from 0.01)
+- Epochs: 60 with early stopping patience=10
+- Objective: Domain specialization for fixed-camera smoke detection
+
+### Configuration Corrections Applied
+```python
+# Updated train_h200.py
+'save_period': 3,           # Per user request (was 5)
+'data': 'configs/yolo/fasdd_stage1.yaml',  # FASDD only
+'single_cls': False,        # Multi-class stage 1
+'batch': 96,               # H200 optimized
+'patience': 10,            # Early stopping
+```
+
 ## Current Status (August 24, 2024)
-- ✅ **110-epoch Stage 1 training restarted with batch=96** 
-- ✅ **VRAM safe**: 105G with 35G headroom
-- ✅ **Performance stable**: 1.24s/batch consistent
-- ✅ **Configuration technically correct** and documented
+- ✅ **Stage 1 FASDD training started** with correct methodology
+- ✅ **Dataset separation**: No more mixing confusion 
+- ✅ **Save period**: 3 epochs as requested
+- ✅ **Multi-class detection**: fire + smoke (Stage 1)
+- 🔄 **Stage 2 pending**: PyroSDIS single-class fine-tuning
