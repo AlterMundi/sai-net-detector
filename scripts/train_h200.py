@@ -24,7 +24,7 @@ def get_h200_config():
         'imgsz': [1440, 808],       # Fixed resolution
         
         # Memory-safe batch/workers
-        'batch': 128,               # Optimal for H200 (validated in 1-epoch test)
+        'batch': 96,                # Reduced for VRAM safety (was 128)
         'workers': 8,               # Safe for 258GB RAM
         'cache': 'disk',            # CRITICAL: No RAM cache
         

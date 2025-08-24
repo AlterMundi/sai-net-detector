@@ -73,8 +73,48 @@ python scripts/train_h200_shm.py --stage 1 --epochs 110
 - `CLAUDE.md`: Updated with working configuration
 - `docs/h200_shm_training_notes.md`: This troubleshooting guide
 
+## Critical Discovery: Batch Size vs VRAM Usage (August 24, 2024)
+
+### Issue: VRAM Usage at Critical Levels
+**Problem**: Training with batch=128 reached 138G/140G VRAM (98.6% usage)
+- Risk of OOM crash at any moment
+- Performance degradation detected: mAP@0.5 dropping from 45-46% (epoch 1) to 42.2-42.7% (epochs 3-5)
+
+### Root Cause Analysis
+1. **Dataset size impact**: Clean dataset (37,413 images vs original corrupted) requires more VRAM
+2. **Batch size scaling**: batch=128 was calibrated for corrupted larger dataset
+3. **Early overfitting**: Learning rate 0.01 + batch 128 causing instability
+
+### Solution Applied
+**Restart training with batch=96**:
+- ✅ **VRAM reduced**: 105G stable (vs 138G with batch=128)
+- ✅ **Technically correct**: Cannot change batch size mid-training
+- ✅ **Safety margin**: 35G VRAM headroom vs 2G previously
+- ⏱️ **Trade-off**: ~12 hours total vs 9.5 hours (acceptable for stability)
+
+### Validated Configuration (Final)
+```python
+config = {
+    'batch': 96,                # CRITICAL: Reduced from 128 for VRAM safety
+    'workers': 12,              # Optimized for RAM I/O
+    'cache': False,             # No YOLO cache - use /dev/shm directly
+    'lr0': 0.01,                # Maintained (user preference)
+    'imgsz': [1440, 808],       # High resolution maintained
+    'project': '/workspace/sai-net-detector/runs',  # Save to repo
+}
+```
+
+### Performance Metrics (batch=96)
+- **VRAM Usage**: 105G stable (25% reduction, safe margin)
+- **Training Speed**: 1.24s/it (vs 1.07s/it with batch=128)
+- **Expected Training Time**: ~12 hours for 110 epochs
+- **Dataset**: 37,413 clean images in /dev/shm
+
+### Key Technical Lesson
+**Cannot change batch size during training** - optimizer state, learning rate scaling, and BatchNorm statistics all depend on consistent batch size. Always restart from epoch 0 when changing batch configuration.
+
 ## Current Status (August 24, 2024)
-- ✅ **110-epoch Stage 1 training running** 
-- ✅ **Performance validated**: 1.07s/batch stable
-- ✅ **Memory stable**: 135GB VRAM, no leaks
-- ✅ **Configuration documented** for future use
+- ✅ **110-epoch Stage 1 training restarted with batch=96** 
+- ✅ **VRAM safe**: 105G with 35G headroom
+- ✅ **Performance stable**: 1.24s/batch consistent
+- ✅ **Configuration technically correct** and documented
