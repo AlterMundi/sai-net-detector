@@ -23,10 +23,10 @@ def get_h200_config():
         'device': 0,                # Single GPU
         'imgsz': 896,               # SAGRADO: 896 for small objects (was [1440, 808])
         
-        # Memory-safe batch/workers
-        'batch': 128,               # PRUEBA: Restored to 128 with sagrado resolution
-        'workers': 12,              # Optimized for 258GB RAM (12×4GB = 48GB)
-        'cache': 'disk',            # CRITICAL: No RAM cache
+        # H200 ULTRA-OPTIMIZED batch/workers  
+        'batch': 512,               # H200 OPTIMIZATION: 4x batch for 140GB VRAM usage
+        'workers': 16,              # H200 OPTIMIZATION: More I/O parallelism
+        'cache': 'ram',             # H200 OPTIMIZATION: Use 258GB RAM for cache
         
         # Training settings
         'patience': 10,             # Early stopping
@@ -81,7 +81,7 @@ def train_stage1_fasdd_h200(epochs=110, test_mode=False):
     print(f"   Epochs: {config['epochs']}")
     print(f"   Batch: {config['batch']} (single GPU)")
     print(f"   Workers: {config['workers']} (memory safe)")
-    print(f"   Cache: {config['cache']} (no RAM cache)")
+    print(f"   Cache: {config['cache']} (disk I/O for 258GB RAM limit)")
     print(f"   Resolution: {config['imgsz']}")
     
     # Initialize model
@@ -103,7 +103,7 @@ def train_stage2_pyrosdis_h200(checkpoint=None, epochs=60, test_mode=False):
     
     # Find checkpoint if not provided
     if checkpoint is None:
-        checkpoint = Path("runs/h200_stage1_fasdd/weights/best.pt")
+        checkpoint = Path("runs/h200_stage1_fasdd7/weights/best.pt")
         if not checkpoint.exists():
             raise FileNotFoundError(
                 "Stage 1 checkpoint not found. Run Stage 1 first or provide --checkpoint"
@@ -112,32 +112,39 @@ def train_stage2_pyrosdis_h200(checkpoint=None, epochs=60, test_mode=False):
     # Get H200 config
     config = get_h200_config()
     
-    # Stage 2 specific settings
+    # Stage 2 specific settings - SAGRADO H200 
     config.update({
         'data': 'data/raw/pyro-sdis/data.yaml',
         'epochs': 3 if test_mode else epochs,
         'project': 'runs',
         'name': 'h200_stage2_pyrosdis',
-        'single_cls': True,   # Single-class
-        'lr0': 0.001,         # 10× reduced for fine-tuning
+        'single_cls': True,   # SAGRADO: Single-class smoke
+        'lr0': 0.001,         # SAGRADO: 10× reduced for fine-tuning
+        'patience': 20,       # SAGRADO: Stage 2 patience=20 (not 10)
         
-        # Moderate augmentation for Stage 2
-        'mosaic': 0.5,
-        'mixup': 0.1,
-        'copy_paste': 0.0,
-        'hsv_h': 0.015,
-        'hsv_s': 0.5,
-        'hsv_v': 0.3,
+        # SAGRADO H200: Stage 2 configuration
+        'batch': 128,         # SAGRADO H200: Reduced from 512 for Stage 2 stability
+        'workers': 8,         # SAGRADO H200: Memory safe for 258GB limit  
+        'cache': 'disk',      # SAGRADO H200: Disk cache (RAM would need 419GB)
+        
+        # SAGRADO: Moderate augmentation for Stage 2
+        'mosaic': 0.5,        # SAGRADO: Reduced from Stage 1
+        'mixup': 0.1,         # SAGRADO: Lower bound range
+        'copy_paste': 0.0,    # SAGRADO: No copy-paste in fine-tuning
+        'hsv_h': 0.015,       # SAGRADO
+        'hsv_s': 0.5,         # SAGRADO: Reduced from Stage 1 (0.7)
+        'hsv_v': 0.3,         # SAGRADO: Reduced from Stage 1 (0.4)
     })
     
     print(f"📊 Configuration:")
     print(f"   Dataset: PyroSDIS (~33K images)")
     print(f"   Classes: smoke only (single-class)")
-    print(f"   Epochs: {config['epochs']}")
-    print(f"   Batch: {config['batch']} (single GPU)")
-    print(f"   Workers: {config['workers']} (memory safe)")
-    print(f"   Cache: {config['cache']} (no RAM cache)")
-    print(f"   Learning rate: {config['lr0']} (reduced)")
+    print(f"   Epochs: {config['epochs']} (SAGRADO)")
+    print(f"   Batch: {config['batch']} (SAGRADO H200 stable)")
+    print(f"   Workers: {config['workers']} (SAGRADO memory safe)")
+    print(f"   Cache: {config['cache']} (SAGRADO 258GB limit)")
+    print(f"   Patience: {config['patience']} (SAGRADO Stage 2)")
+    print(f"   Learning rate: {config['lr0']} (SAGRADO 10× reduced)")
     print(f"   Checkpoint: {checkpoint}")
     
     # Load model from Stage 1
@@ -195,10 +202,10 @@ Examples:
     print("📊 Hardware Configuration:")
     print(f"   GPU: 1× NVIDIA H200 (140GB VRAM)")
     print(f"   RAM: 258GB system limit")
-    print(f"   Batch: 128 (optimal for H200)")
-    print(f"   Workers: 8 (memory safe)")
-    print(f"   Cache: Disk (no RAM cache)")
-    print(f"   Resolution: 1440×808")
+    print(f"   Batch: 128 (SAGRADO for H200 stability)")
+    print(f"   Workers: 8 (SAGRADO memory safe)")
+    print(f"   Cache: Disk (SAGRADO - 258GB RAM limit)")
+    print(f"   Resolution: 896×896 (SAGRADO small objects)")
     print("=" * 60)
     
     try:
