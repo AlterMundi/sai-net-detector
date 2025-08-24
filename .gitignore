@@ -25,6 +25,11 @@ runs/
 logs/
 *.log
 
+# /dev/shm cache and temporary training files (never commit RAM cache)
+/dev/shm/
+*.cache
+.cache/
+
 # Model checkpoints and weights
 *.pt
 *.pth

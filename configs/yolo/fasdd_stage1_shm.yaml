@@ -1,0 +1,25 @@
+# FASDD Stage 1: Pre-training con /dev/shm optimization
+# SAI-Net Two-Stage Workflow - Stage 1 con cache en RAM
+
+# FASDD Dataset - Cache ultra-rápido en /dev/shm (125GB tmpfs)
+train: /dev/shm/sai_cache/images/train
+val: /dev/shm/sai_cache/images/val
+
+# Multi-class configuration (keep original fire + smoke classes)
+nc: 2                    # Two classes: fire and smoke
+names: ['fire', 'smoke'] # Original FASDD class names
+
+# Optional test set (keep on disk, less frequent access)
+test: /workspace/sai-net-detector/data/yolo/images/test
+
+# Performance optimizations for /dev/shm
+# Cache settings optimized for RAM-based storage
+cache: true              # Enable image cache (will be ultra-fast from RAM)
+rect: false              # Disable rectangular training (better for cache efficiency)
+
+# Dataset statistics for Stage 1 (cached in RAM)
+# FASDD: ~63,546 images cached in /dev/shm for maximum I/O performance
+# Multi-class training for diverse pattern learning
+# Expected I/O speedup: 50-100× vs SSD, ~2-3× overall training speedup
+# Objective: Learn diverse fire/smoke detection with rich variety
+# Expected output: Multi-class detector with good generalization

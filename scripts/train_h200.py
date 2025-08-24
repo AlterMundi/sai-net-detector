@@ -28,11 +28,6 @@ def get_h200_config():
         'workers': 8,               # Safe for 258GB RAM
         'cache': 'disk',            # CRITICAL: No RAM cache
         
-        # Memory optimization
-        'pin_memory': False,        # Save memory
-        'persistent_workers': True,  # Efficiency
-        'prefetch_factor': 2,       # Reduced from 4
-        
         # Training settings
         'patience': 10,             # Early stopping
         'amp': True,                # Mixed precision
@@ -65,7 +60,7 @@ def train_stage1_fasdd_h200(epochs=110, test_mode=False):
     
     # Stage 1 specific settings
     config.update({
-        'data': 'data/yolo/data.yaml',
+        'data': 'configs/yolo/fasdd_stage1.yaml',
         'epochs': 3 if test_mode else epochs,
         'project': 'runs',
         'name': 'h200_stage1_fasdd',

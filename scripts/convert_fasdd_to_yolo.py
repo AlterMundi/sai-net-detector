@@ -107,6 +107,35 @@ def convert_split(
         img_width = img_info['width']
         img_height = img_info['height']
         
+        # Check if image has annotations first
+        if img_id not in image_annotations:
+            print(f"Skipping image {img_filename} (no annotations)")
+            continue
+            
+        # Convert annotations to YOLO format
+        yolo_annotations = []
+        for ann in image_annotations[img_id]:
+            category_id = ann['category_id']
+            bbox = ann['bbox']
+            
+            # Convert bbox from COCO to YOLO format
+            yolo_bbox = coco_to_yolo_bbox(bbox, img_width, img_height)
+            
+            # Map class
+            yolo_class = class_mapping[category_id]
+            
+            # Count classes
+            original_class_name = categories[category_id]
+            class_counts[original_class_name] += 1
+            
+            # Create YOLO annotation line
+            yolo_line = f"{yolo_class} {' '.join(map(str, yolo_bbox))}"
+            yolo_annotations.append(yolo_line)
+        
+        # Only process images with annotations
+        if not yolo_annotations:
+            continue
+            
         # Copy image file
         src_img_path = Path(src_dir) / "images" / split / img_filename
         dst_img_path = images_dir / img_filename
@@ -117,35 +146,13 @@ def convert_split(
         
         shutil.copy2(src_img_path, dst_img_path)
         
-        # Convert annotations to YOLO format
-        yolo_annotations = []
-        if img_id in image_annotations:
-            for ann in image_annotations[img_id]:
-                category_id = ann['category_id']
-                bbox = ann['bbox']
-                
-                # Convert bbox from COCO to YOLO format
-                yolo_bbox = coco_to_yolo_bbox(bbox, img_width, img_height)
-                
-                # Map class
-                yolo_class = class_mapping[category_id]
-                
-                # Count classes
-                original_class_name = categories[category_id]
-                class_counts[original_class_name] += 1
-                
-                # Create YOLO annotation line
-                yolo_line = f"{yolo_class} {' '.join(map(str, yolo_bbox))}"
-                yolo_annotations.append(yolo_line)
-        
         # Write YOLO label file
         label_filename = img_filename.replace('.jpg', '.txt').replace('.png', '.txt')
         label_path = labels_dir / label_filename
         
         with open(label_path, 'w') as f:
             f.write('\n'.join(yolo_annotations))
-            if yolo_annotations:  # Add newline at end if file is not empty
-                f.write('\n')
+            f.write('\n')  # Add newline at end
         
         converted_count += 1
     
