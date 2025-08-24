@@ -11,7 +11,7 @@ from pathlib import Path
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from detector.train_forceddp import train_detector_forced_ddp
+from detector.train import train_detector_forced_ddp
 
 def main():
     parser = argparse.ArgumentParser(description="Test ForcedDDP Training")

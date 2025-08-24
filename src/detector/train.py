@@ -1,14 +1,94 @@
 """
 YOLOv8 Training Module for SAI-Net Detector
-Wildfire smoke detection using PyroSDIS + FASDD datasets
+Includes both standard and ForcedDDP training capabilities
 """
 
 import os
 import logging
+import socket
 from pathlib import Path
 from typing import Optional, Dict, Any
 from ultralytics import YOLO
 import torch
+import torch.distributed as dist
+
+def find_free_port() -> int:
+    """Find a free port for DDP communication"""
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.bind(('', 0))
+        return s.getsockname()[1]
+
+def setup_forced_ddp(device_str: str, interactive: bool = True) -> bool:
+    """
+    Setup DDP with manual configuration to avoid ultralytics auto-spawn issues
+    
+    Args:
+        device_str: Device string like "0,1"
+        interactive: If True, ask user before fallback to single GPU
+        
+    Returns:
+        True if DDP setup successful, False for single GPU fallback, None if user aborted
+    """
+    
+    if "," not in device_str or device_str == "cpu":
+        if interactive:
+            print(f"⚠️  Single device detected: {device_str}")
+            print("❓ Continue with single GPU mode? [y/N]: ", end="", flush=True)
+            response = input().strip().lower()
+            if response not in ['y', 'yes']:
+                print("❌ Training aborted by user")
+                return None  # None indicates user abort
+        return False  # False indicates single GPU mode
+        
+    # Parse device list
+    device_list = [int(d.strip()) for d in device_str.split(",")]
+    world_size = len(device_list)
+    
+    if world_size < 2:
+        if interactive:
+            print(f"⚠️  Insufficient devices for DDP: {world_size}")
+            print("❓ Continue with single GPU fallback? [y/N]: ", end="", flush=True)
+            response = input().strip().lower()
+            if response not in ['y', 'yes']:
+                print("❌ Training aborted by user")
+                return None  # None indicates user abort
+        return False  # False indicates single GPU mode
+    
+    print(f"🔧 Setting up Forced DDP for {world_size} GPUs: {device_list}")
+    
+    # 1. Clean any existing DDP environment
+    ddp_vars = [
+        'MASTER_ADDR', 'MASTER_PORT', 'WORLD_SIZE', 
+        'RANK', 'LOCAL_RANK', 'NODE_RANK'
+    ]
+    
+    for var in ddp_vars:
+        if var in os.environ:
+            print(f"🧹 Clearing existing {var}={os.environ[var]}")
+            del os.environ[var]
+    
+    # 2. Set controlled DDP environment
+    master_port = find_free_port()
+    
+    os.environ['MASTER_ADDR'] = '127.0.0.1'
+    os.environ['MASTER_PORT'] = str(master_port)
+    os.environ['WORLD_SIZE'] = str(world_size)
+    
+    # 3. NCCL stability settings
+    os.environ['NCCL_P2P_DISABLE'] = '1'  # Disable peer-to-peer for stability
+    os.environ['NCCL_IB_DISABLE'] = '1'   # Disable InfiniBand
+    os.environ['NCCL_DEBUG'] = 'WARN'     # Moderate debugging
+    
+    # 4. PyTorch DDP settings
+    os.environ['TORCH_DISTRIBUTED_DEBUG'] = 'DETAIL'
+    
+    print(f"✅ DDP Environment configured:")
+    print(f"   MASTER_ADDR: {os.environ['MASTER_ADDR']}")
+    print(f"   MASTER_PORT: {os.environ['MASTER_PORT']}")
+    print(f"   WORLD_SIZE: {os.environ['WORLD_SIZE']}")
+    print(f"   NCCL_P2P_DISABLE: {os.environ['NCCL_P2P_DISABLE']}")
+    
+    return True
 
 def setup_logging():
     """Configure logging for training"""
@@ -16,19 +96,22 @@ def setup_logging():
         level=logging.INFO,
         format='%(asctime)s - %(levelname)s - %(message)s',
         handlers=[
-            logging.FileHandler('logs/training.log'),
+            logging.FileHandler('logs/training_forceddp.log'),
             logging.StreamHandler()
         ]
     )
+
+# Legacy function names for backward compatibility
+train_detector_forced_ddp = lambda *args, **kwargs: train_detector(*args, **kwargs)
 
 def train_detector(
     data_yaml: str = "configs/yolo/pyro_fasdd.yaml",
     model: str = "yolov8s.pt", 
     imgsz: int = 1440,
     epochs: int = 150,
-    batch: int = 120,
+    batch: int = 60,   # CORRECTED: Match exact successful test (60, not 120)
     device: str = "0,1",
-    workers: int = 79,
+    workers: int = 8,  # CORRECTED: Match exact successful test (8, not 16)
     amp: bool = True,
     cos_lr: bool = True,
     lr0: float = 0.01,
@@ -54,88 +137,79 @@ def train_detector(
     close_mosaic: int = 15,
     cache: str = "ram",
     project: str = "/dev/shm/rrn/sai-net-detector/runs",
-    name: str = "sai_yolov8s_optimal",
+    name: str = "sai_forceddp_test",
     save_period: int = -1,
     single_cls: bool = True,
+    interactive: bool = True,
     **kwargs
 ) -> Dict[str, Any]:
     """
-    Train YOLOv8 detector for wildfire smoke detection
+    Train YOLOv8 detector with forced DDP configuration
     
     Args:
-        data_yaml: Path to YOLO dataset configuration
-        model: Model architecture (yolov8s.pt, yolov8m.pt)
-        imgsz: Input image size 
-        epochs: Number of training epochs
-        batch: Batch size (distributed across GPUs)
-        device: GPU devices (e.g., "0,1" for DDP)
-        workers: Number of data loading workers
-        amp: Mixed precision (bf16/fp16)
-        cos_lr: Use cosine learning rate scheduler
-        lr0: Initial learning rate
-        lrf: Final learning rate factor
-        momentum: SGD momentum
-        weight_decay: Weight decay
-        warmup_epochs: Warmup epochs
-        warmup_momentum: Warmup momentum
-        warmup_bias_lr: Warmup bias learning rate
-        box: Box loss weight
-        cls: Classification loss weight
-        dfl: Distribution Focal Loss weight
-        hsv_h: HSV hue augmentation
-        hsv_s: HSV saturation augmentation
-        hsv_v: HSV value augmentation
-        degrees: Rotation degrees
-        translate: Translation fraction
-        scale: Scaling factor
-        shear: Shearing degrees
-        mosaic: Mosaic augmentation probability
-        mixup: MixUp augmentation probability
-        copy_paste: Copy-paste augmentation probability
-        close_mosaic: Epochs to stop mosaic
-        cache: Cache mode (ram/disk)
-        project: Project directory
-        name: Experiment name
-        save_period: Save checkpoint every N epochs
-        single_cls: Single class mode
-        **kwargs: Additional arguments
+        Same as original train_detector but with forced DDP setup
         
     Returns:
         Training results dictionary
     """
     
-    # Setup
+    # Step 1: Setup forced DDP BEFORE any PyTorch operations
+    ddp_enabled = setup_forced_ddp(device, interactive=interactive)
+    
+    if not ddp_enabled:
+        if "," in device:
+            print("🔄 Switching to single GPU fallback mode...")
+            device = device.split(",")[0] if "," in device else device
+            batch = batch * 2 if batch < 200 else batch  # Compensate for single GPU
+            print(f"📊 Adjusted configuration:")
+            print(f"   Device: {device} (from multi-GPU)")
+            print(f"   Batch: {batch} (compensated for single GPU)")
+        else:
+            print("🔄 Single GPU mode")
+            
+    # Check if user aborted during DDP setup (setup_forced_ddp returns None for abort)
+    if ddp_enabled is None:
+        return {
+            'success': False,
+            'error': 'Training aborted by user during DDP setup',
+            'ddp_mode': False,
+            'user_aborted': True
+        }
+    
+    # Step 2: Setup logging AFTER DDP environment is configured
     setup_logging()
     logger = logging.getLogger(__name__)
     
-    # Create directories
+    # Step 3: Create directories
     os.makedirs("logs", exist_ok=True)
     os.makedirs(project, exist_ok=True)
     
-    # Validate data configuration
+    # Step 4: Validate inputs
     if not Path(data_yaml).exists():
         raise FileNotFoundError(f"Data configuration not found: {data_yaml}")
     
-    # Check GPU availability
+    # Step 5: Hardware validation
     if not torch.cuda.is_available():
         logger.warning("CUDA not available, falling back to CPU")
         device = "cpu"
-        batch = batch // 4  # Reduce batch for CPU
+        batch = batch // 4
         workers = min(workers, 8)
         amp = False
     else:
         gpu_count = torch.cuda.device_count()
         logger.info(f"Available GPUs: {gpu_count}")
-        if "," in device:
-            device_list = [int(d.strip()) for d in device.split(",")]
+        
+        if ddp_enabled and "," in str(device):
+            device_list = [int(d.strip()) for d in str(device).split(",")]
             if max(device_list) >= gpu_count:
-                logger.warning(f"Device {max(device_list)} not available, using available GPUs")
+                logger.warning(f"Device {max(device_list)} not available")
                 device = ",".join([str(i) for i in range(min(len(device_list), gpu_count))])
     
-    # Log hardware optimization
-    logger.info("=== SAI-Net Detector Training Configuration ===")
+    # Step 6: Log configuration
+    logger.info("=== SAI-Net Detector ForcedDDP Training ===")
     logger.info(f"Model: {model}")
     logger.info(f"Dataset: {data_yaml}")
+    logger.info(f"DDP Mode: {'Enabled' if ddp_enabled else 'Single GPU'}")
     logger.info(f"Image size: {imgsz}x{imgsz}")
     logger.info(f"Batch size: {batch}")
     logger.info(f"Workers: {workers}")
@@ -145,10 +219,10 @@ def train_detector(
     logger.info("=" * 50)
     
     try:
-        # Initialize model
-        model = YOLO(model)
+        # Step 7: Initialize model
+        model_instance = YOLO(model)
         
-        # Configure training arguments
+        # Step 8: Configure training arguments
         train_args = {
             'data': data_yaml,
             'imgsz': imgsz,
@@ -190,16 +264,16 @@ def train_detector(
             **kwargs
         }
         
-        logger.info("Starting training...")
-        results = model.train(**train_args)
+        logger.info("🚀 Starting ForcedDDP training...")
+        results = model_instance.train(**train_args)
         
-        logger.info("Training completed successfully!")
+        logger.info("✅ Training completed successfully!")
         if hasattr(results, 'save_dir') and results.save_dir:
             logger.info(f"Results saved to: {results.save_dir}")
         
-        # Return results summary
         return {
             'success': True,
+            'ddp_mode': ddp_enabled,
             'save_dir': str(results.save_dir) if hasattr(results, 'save_dir') and results.save_dir else None,
             'best_fitness': float(results.best_fitness) if hasattr(results, 'best_fitness') else None,
             'metrics': results.results_dict if hasattr(results, 'results_dict') else None
@@ -207,51 +281,93 @@ def train_detector(
         
     except Exception as e:
         logger.error(f"Training failed: {str(e)}")
+        
+        # Enhanced error reporting for DDP issues
+        if "distributed" in str(e).lower() or "nccl" in str(e).lower():
+            logger.error("🔴 DDP-specific error detected")
+            
+            if interactive and ddp_enabled:
+                print("\n" + "="*60)
+                print("⚠️  DDP TRAINING FAILED")
+                print(f"Error: {str(e)}")
+                print("="*60)
+                print("❓ Do you want to retry with single GPU mode? [y/N]: ", end="", flush=True)
+                
+                retry_response = input().strip().lower()
+                if retry_response in ['y', 'yes']:
+                    print("🔄 Retrying with single GPU configuration...")
+                    
+                    # Recursive call with single GPU
+                    single_gpu_device = device.split(",")[0] if "," in str(device) else device
+                    return train_detector_forced_ddp(
+                        data_yaml=data_yaml, model=model, imgsz=imgsz, epochs=epochs,
+                        batch=batch*2 if batch < 200 else batch,  # Compensate batch
+                        device=single_gpu_device, workers=workers, amp=amp, cos_lr=cos_lr,
+                        lr0=lr0, lrf=lrf, momentum=momentum, weight_decay=weight_decay,
+                        warmup_epochs=warmup_epochs, warmup_momentum=warmup_momentum,
+                        warmup_bias_lr=warmup_bias_lr, box=box, cls=cls, dfl=dfl,
+                        hsv_h=hsv_h, hsv_s=hsv_s, hsv_v=hsv_v, degrees=degrees,
+                        translate=translate, scale=scale, shear=shear, mosaic=mosaic,
+                        mixup=mixup, copy_paste=copy_paste, close_mosaic=close_mosaic,
+                        cache=cache, project=project, name=f"{name}_singlegpu_retry",
+                        save_period=save_period, single_cls=single_cls,
+                        interactive=False,  # Disable interactive for retry
+                        **kwargs
+                    )
+                else:
+                    print("❌ Training aborted by user")
+            
         return {
             'success': False,
-            'error': str(e)
+            'error': str(e),
+            'ddp_mode': ddp_enabled,
+            'recommendation': 'single_gpu' if 'distributed' in str(e).lower() else 'investigate',
+            'interactive_handled': interactive and ddp_enabled
         }
 
+# Legacy aliases for backward compatibility
 def train_optimal():
     """
     Train detector with optimal configuration for 2×A100 GPUs, 500GB RAM
-    Resolution: 1440×808 (high-res), Batch: 60 (matches successful ForcedDDP test)
+    Resolution: 1440×1440, Batch: 60 (matches successful ForcedDDP test)
     """
     return train_detector(
         data_yaml="configs/yolo/pyro_fasdd.yaml",
         model="yolov8s.pt",
-        imgsz=1440,
-        epochs=150,
-        batch=60,   # CORRECTED: Match successful test (60, not 120)
+        imgsz=1440,  # High resolution for small smoke detection
+        epochs=150,  # Full training cycle (test used 1 epoch)
+        batch=60,    # EXACT MATCH: test used 60, not 120
         device="0,1",
-        workers=8,  # CORRECTED: Match successful test (8, not 16)
-        amp=True,
-        cos_lr=True,
-        lr0=0.01,
-        lrf=0.01,
+        workers=8,   # EXACT MATCH: test used 8, not 16
+        amp=True,    # Mixed precision for memory efficiency
+        cos_lr=True, # Cosine learning rate scheduler
+        lr0=0.01,    # Initial learning rate
+        lrf=0.01,    # Final learning rate factor
         momentum=0.937,
         weight_decay=0.0005,
-        warmup_epochs=5,
+        warmup_epochs=5,      # Gradual warmup
         warmup_momentum=0.8,
         warmup_bias_lr=0.1,
-        box=7.5,
-        cls=0.5,
-        dfl=1.5,
-        hsv_h=0.015,
-        hsv_s=0.7,
-        hsv_v=0.4,
-        degrees=5,
-        translate=0.1,
-        scale=0.5,
-        shear=2.0,
-        mosaic=1.0,
-        mixup=0.1,
-        copy_paste=0.0,
-        close_mosaic=15,
-        cache="ram",  # Corrected: proven working with 500GB RAM
+        # Loss weights optimized for smoke detection
+        box=7.5,     # Emphasize bounding box accuracy
+        cls=0.5,     # Classification weight (single class)
+        dfl=1.5,     # Distribution focal loss for small objects
+        # Augmentation optimized for wildfire smoke
+        hsv_h=0.015, # Minimal hue variation (preserve smoke color)
+        hsv_s=0.7,   # Moderate saturation changes
+        hsv_v=0.4,   # Value/brightness variations
+        degrees=5,   # Minimal rotation (smoke is often vertical)
+        translate=0.1, # Small translation
+        scale=0.5,   # Scale augmentation for size variation
+        shear=2.0,   # Geometric shearing
+        mosaic=1.0,  # Full mosaic augmentation
+        mixup=0.1,   # Light mixup for regularization
+        copy_paste=0.0,  # No copy-paste (can confuse smoke detection)
+        close_mosaic=15, # Stop mosaic in last 15 epochs
+        cache="ram",     # RAM caching for performance
         project="/dev/shm/rrn/sai-net-detector/runs",
-        name="sai_yolov8s_optimal_1440x808",
-        single_cls=True
+        name="sai_final_production_1440x808",
+        single_cls=True  # Single smoke class detection
     )
 
 def train_conservative():
@@ -269,7 +385,21 @@ def train_conservative():
         name="sai_yolov8s_conservative_960x960"
     )
 
+# Legacy aliases
+train_optimal_forced_ddp = train_optimal
+train_detector_forced_ddp = train_detector
+
 if __name__ == "__main__":
     # Run optimal configuration
     results = train_optimal()
-    print(f"Training results: {results}")
+    
+    if results['success']:
+        print(f"✅ ForcedDDP training successful!")
+        print(f"Mode: {'DDP' if results['ddp_mode'] else 'Single GPU'}")
+        print(f"Results: {results['save_dir']}")
+        if results.get('best_fitness'):
+            print(f"Best fitness: {results['best_fitness']:.4f}")
+    else:
+        print(f"❌ ForcedDDP training failed: {results['error']}")
+        if results.get('recommendation'):
+            print(f"💡 Recommendation: {results['recommendation']}")

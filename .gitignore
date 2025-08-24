@@ -4,11 +4,20 @@ data/yolo/
 pyro-sdis/images/
 pyro-sdis/labels/
 
-# Large dataset files
+# Large dataset files and archives
 *.zip
 *.tar
 *.tar.gz
 *.7z
+*.rar
+fasdd-cv-coco.zip
+pyro-sdis/
+
+# Large image datasets
+data/raw/fasdd/
+data/raw/images/
+data/yolo/images/
+data/yolo/labels/
 
 # Training outputs
 outputs/
