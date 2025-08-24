@@ -42,7 +42,7 @@ def main():
     parser.add_argument("--weight-decay", type=float, default=0.0005, help="Weight decay")
     
     # Mixed precision and hardware optimization
-    parser.add_argument("--amp", default="bf16", help="Mixed precision (bf16/fp16/False)")
+    parser.add_argument("--amp", action="store_true", default=True, help="Mixed precision training")
     parser.add_argument("--cos-lr", action="store_true", default=True, help="Cosine LR scheduler")
     parser.add_argument("--single-cls", action="store_true", default=True, help="Single class mode")
     

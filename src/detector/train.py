@@ -29,7 +29,7 @@ def train_detector(
     batch: int = 120,
     device: str = "0,1",
     workers: int = 79,
-    amp: str = "bf16",
+    amp: bool = True,
     cos_lr: bool = True,
     lr0: float = 0.01,
     lrf: float = 0.01,
@@ -194,12 +194,13 @@ def train_detector(
         results = model.train(**train_args)
         
         logger.info("Training completed successfully!")
-        logger.info(f"Results saved to: {results.save_dir}")
+        if hasattr(results, 'save_dir') and results.save_dir:
+            logger.info(f"Results saved to: {results.save_dir}")
         
         # Return results summary
         return {
             'success': True,
-            'save_dir': str(results.save_dir),
+            'save_dir': str(results.save_dir) if hasattr(results, 'save_dir') and results.save_dir else None,
             'best_fitness': float(results.best_fitness) if hasattr(results, 'best_fitness') else None,
             'metrics': results.results_dict if hasattr(results, 'results_dict') else None
         }
@@ -214,17 +215,17 @@ def train_detector(
 def train_optimal():
     """
     Train detector with optimal configuration for 2×A100 GPUs, 500GB RAM
-    Resolution: 1440×808 (high-res), Batch: 120 (VRAM optimized)
+    Resolution: 1440×808 (high-res), Batch: 60 (matches successful ForcedDDP test)
     """
     return train_detector(
         data_yaml="configs/yolo/pyro_fasdd.yaml",
         model="yolov8s.pt",
         imgsz=1440,
         epochs=150,
-        batch=120,
+        batch=60,   # CORRECTED: Match successful test (60, not 120)
         device="0,1",
-        workers=79,
-        amp="bf16",
+        workers=8,  # CORRECTED: Match successful test (8, not 16)
+        amp=True,
         cos_lr=True,
         lr0=0.01,
         lrf=0.01,
@@ -247,7 +248,7 @@ def train_optimal():
         mixup=0.1,
         copy_paste=0.0,
         close_mosaic=15,
-        cache="ram",
+        cache="ram",  # Corrected: proven working with 500GB RAM
         project="/dev/shm/rrn/sai-net-detector/runs",
         name="sai_yolov8s_optimal_1440x808",
         single_cls=True

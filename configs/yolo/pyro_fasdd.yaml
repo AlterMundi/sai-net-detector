@@ -1,20 +1,20 @@
 # Combined PyroSDIS + FASDD dataset configuration for YOLO
 # SAI-Net Detector training configuration
 
-# Paths to combined datasets
+# Paths to combined datasets (absolute paths)
 train: 
-  - data/raw/pyro-sdis/images/train  # PyroSDIS training images
-  - data/yolo/images/train           # FASDD training images
+  - /dev/shm/rrn/sai-net-detector/data/raw/pyro-sdis/images/train  # PyroSDIS training images
+  - /dev/shm/rrn/sai-net-detector/data/yolo/images/train           # FASDD training images
 val:
-  - data/raw/pyro-sdis/images/val    # PyroSDIS validation images  
-  - data/yolo/images/val             # FASDD validation images
+  - /dev/shm/rrn/sai-net-detector/data/raw/pyro-sdis/images/val    # PyroSDIS validation images  
+  - /dev/shm/rrn/sai-net-detector/data/yolo/images/val             # FASDD validation images
 
 # Dataset configuration
 nc: 1                    # Number of classes (single smoke class)
 names: ['smoke']         # Class names
 
 # Optional test set (FASDD only, PyroSDIS doesn't have separate test)
-test: data/yolo/images/test
+test: /dev/shm/rrn/sai-net-detector/data/yolo/images/test
 
 # Dataset statistics (for reference)
 # PyroSDIS: ~33,637 images with smoke bounding boxes
