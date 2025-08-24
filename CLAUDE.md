@@ -244,43 +244,34 @@ python scripts/train_two_stage.py --stage 1 --test-mode --epochs 3
 - **Full training**: 110 epochs, early stopping patience=10
 - **Dataset**: 37,413 clean images (0 backgrounds, 0 corrupt)
 
-## Training Status Monitoring Template
+## Training Status & Results (August 2024)
 
-When reviewing training metrics, always check exactly these key indicators:
+### Stage 1: FASDD Multi-class (COMPLETED ✅)
+- **Training**: `runs/h200_stage1_fasdd7/` - 61 epochs, early stopping
+- **Performance**: mAP@0.5=90.6% (Grade A+ benchmark: 94.3/100)
+- **Configuration**: H200 GPU, batch=128, cache='disk', patience=10
+- **Status**: COMPLETED successfully, best.pt ready for Stage 2
 
-**✅ Estado actual del entrenamiento:**
+### Stage 2: PyroSDIS Single-class (IN PROGRESS 🔄)
+- **Training**: `runs/h200_stage2_pyrosdis3/` - Currently epoch 24/60
+- **Performance**: mAP@0.5=73.1% (Target: >50% achieved)
+- **Configuration**: SAGRADO H200, lr0=0.001, single_cls=True, patience=20
+- **ETA**: ~2.5 hours remaining, excellent convergence
 
-**📈 Progreso época X/110:**
-- **Progreso época actual**: XX% completado (XXX/293 batches)
-- **Tiempo restante época X**: ~XX minutos
-- **Velocidad**: X.XXs/it (objetivo: ~1.07s/it)
+### Two-Stage Training Results Summary
+**Stage 1 → Stage 2 Performance:**
+- **Initial**: FASDD multi-class → 90.6% mAP@0.5 
+- **Fine-tuning**: PyroSDIS single-class → 73.1% mAP@0.5 (epoch 24)
+- **Method**: Transfer learning with 10x reduced LR for domain specialization
+- **Status**: Stage 2 exceeding targets, stable convergence
 
-**📉 Losses época X:**
-- **Box loss**: X.XXX (bounding box regression)
-- **Cls loss**: X.XXX (classification)  
-- **DFL loss**: X.XXX (distribution focal loss)
-
-**💾 Memoria:**
-- **VRAM**: XXXG (objetivo: estable ~135G para H200)
-- **Sin lecturas NaN o corruptas** ✅
-
-**🎯 Progreso general:**
-- **Épocas completadas**: X ✅
-- **Época actual**: X/110 (XX% completada)
-- **Progreso total**: ~X.X% del entrenamiento
-- **Tiempo transcurrido**: ~XX minutos total
-
-**📊 Tendencia de mejora (validación):**
-```
-Época 1: mAP@0.5 = XX.X%
-Época 2: mAP@0.5 = XX.X% (+X.X pts)
-Época 3: mAP@0.5 = XX.X% (+X.X pts)
-```
-
-**⏱️ Estimación:**
-- **ETA época actual**: ~XX minutos
-- **ETA total**: ~X.X horas restantes
-- **Ritmo**: Estable/Problemático
+### Training Status Template
+**📈 Current Progress (Stage 2):**
+- **Epoch**: 24/60 (40% complete)
+- **mAP@0.5**: 73.1% (exceeding >50% target)
+- **VRAM**: 55.7G stable (H200 140GB limit)
+- **Speed**: 2.39s/it consistent
+- **ETA**: ~2.5 hours remaining
 
 ## Licensing
 
