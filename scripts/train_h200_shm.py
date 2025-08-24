@@ -28,7 +28,7 @@ def get_h200_shm_config():
     # /dev/shm optimizations
     config.update({
         # Ultra-fast I/O from RAM cache
-        'cache': True,              # Enable cache (images in RAM)
+        'cache': False,             # No additional cache - images already in /dev/shm
         'project': '/workspace/sai-net-detector/runs',  # Save outputs to repo
         
         # Optimized for RAM-cached data

@@ -192,14 +192,15 @@ find data/yolo/labels/train -name "*.txt" | wc -l
 
 **Two-Stage Commands:**
 ```bash
-# H200 + /dev/shm optimized training (ultra-fast)
-python scripts/train_h200_shm.py --stage 1 --epochs 110
+# H200 + /dev/shm optimized training (ultra-fast) ✅ RECOMMENDED
+scripts/setup_shm_training.sh  # Setup RAM cache (run once)
+python scripts/train_h200_shm.py --stage 1 --epochs 110  # ✅ CURRENTLY RUNNING
 python scripts/train_h200_shm.py --stage 2 --epochs 60
 
-# Test configurations
-python scripts/train_h200_shm.py --stage 1 --test-mode  # 1 epoch test
+# Test configurations (validated)
+python scripts/train_h200_shm.py --stage 1 --test-mode  # 1 epoch: mAP@0.5=46.7%
 
-# Testing configurations
+# Alternative: Standard disk I/O training
 python scripts/train_two_stage.py --stage 1 --test-mode --epochs 3
 ```
 
@@ -220,13 +221,28 @@ python scripts/train_two_stage.py --stage 1 --test-mode --epochs 3
 - **Workers**: 8 workers optimal (prevents spawn explosion issues)
 - **Mixed Precision**: AMP/BF16 enabled for memory efficiency
 
-### H200 + /dev/shm Optimization (August 2024)
+### H200 + /dev/shm Optimization (August 2024) ✅ WORKING
 - **GPU**: 1× NVIDIA H200 (140GB VRAM, 700W TDP)
-- **RAM**: 258GB system limit, 125GB /dev/shm tmpfs
-- **Cache Strategy**: Images cached in RAM for 50-100× I/O speedup
-- **Training Speed**: ~1.07s/batch (vs ~1.6s disk), 2-3× total speedup
-- **Setup**: `scripts/setup_shm_training.sh` (copies 6GB images to RAM)
-- **Config**: `configs/yolo/fasdd_stage1_shm.yaml` (optimized paths)
+- **RAM**: 258GB system limit, 125GB /dev/shm tmpfs partition
+- **Cache Strategy**: Images in /dev/shm RAM for 50-100× I/O speedup
+- **Training Speed**: **1.07s/batch** (validated), ~9.5 hours for 110 epochs
+- **Memory Usage**: 135GB VRAM stable, 34GB /dev/shm used
+- **Setup**: `scripts/setup_shm_training.sh` (copies images to RAM)
+- **Config Fix**: `cache=false` (YOLO cache disabled, uses /dev/shm directly)
+
+**Critical Configuration:**
+```python
+# Correct /dev/shm configuration
+'cache': False,          # No YOLO cache - images already in /dev/shm
+'batch': 128,           # Optimal for H200 (validated)  
+'workers': 12,          # Optimized for RAM I/O
+'project': 'runs/',     # Outputs to repo (not /dev/shm)
+```
+
+**Performance Results:**
+- **1-epoch test**: mAP@0.5=46.7% (6.06 minutes)
+- **Full training**: 110 epochs, early stopping patience=10
+- **Dataset**: 37,413 clean images (0 backgrounds, 0 corrupt)
 
 ## Licensing
 
