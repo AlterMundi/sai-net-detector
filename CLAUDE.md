@@ -244,6 +244,44 @@ python scripts/train_two_stage.py --stage 1 --test-mode --epochs 3
 - **Full training**: 110 epochs, early stopping patience=10
 - **Dataset**: 37,413 clean images (0 backgrounds, 0 corrupt)
 
+## Training Status Monitoring Template
+
+When reviewing training metrics, always check exactly these key indicators:
+
+**✅ Estado actual del entrenamiento:**
+
+**📈 Progreso época X/110:**
+- **Progreso época actual**: XX% completado (XXX/293 batches)
+- **Tiempo restante época X**: ~XX minutos
+- **Velocidad**: X.XXs/it (objetivo: ~1.07s/it)
+
+**📉 Losses época X:**
+- **Box loss**: X.XXX (bounding box regression)
+- **Cls loss**: X.XXX (classification)  
+- **DFL loss**: X.XXX (distribution focal loss)
+
+**💾 Memoria:**
+- **VRAM**: XXXG (objetivo: estable ~135G para H200)
+- **Sin lecturas NaN o corruptas** ✅
+
+**🎯 Progreso general:**
+- **Épocas completadas**: X ✅
+- **Época actual**: X/110 (XX% completada)
+- **Progreso total**: ~X.X% del entrenamiento
+- **Tiempo transcurrido**: ~XX minutos total
+
+**📊 Tendencia de mejora (validación):**
+```
+Época 1: mAP@0.5 = XX.X%
+Época 2: mAP@0.5 = XX.X% (+X.X pts)
+Época 3: mAP@0.5 = XX.X% (+X.X pts)
+```
+
+**⏱️ Estimación:**
+- **ETA época actual**: ~XX minutos
+- **ETA total**: ~X.X horas restantes
+- **Ritmo**: Estable/Problemático
+
 ## Licensing
 
 This project is licensed under GNU GPL v3. Dataset usage follows respective licenses:
