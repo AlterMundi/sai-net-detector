@@ -4,7 +4,7 @@
 
 ### ✅ Added
 - **Validated Test Results**: 1-epoch ForcedDDP test successfully completed
-  - mAP@0.5: **47.8%** with batch=60, workers=8, 1440×1440 resolution
+  - mAP@0.5: **47.8%** with batch=60, workers=8, 1440×808 resolution
   - Performance: 2.5ms inference, 1.85 it/s training speed
   - Hardware: 2×A100-40GB GPUs, 341GB RAM cache utilization
   - Training time: 16.7 minutes per epoch (estimated 42 hours for 150 epochs)

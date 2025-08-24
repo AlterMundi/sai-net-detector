@@ -29,7 +29,7 @@ def main():
     parser.add_argument("--model", default="yolov8s.pt", help="Model architecture")
     parser.add_argument("--epochs", type=int, default=150, help="Number of epochs")
     parser.add_argument("--batch", type=int, default=120, help="Batch size")
-    parser.add_argument("--imgsz", type=int, default=1440, help="Image size")
+    parser.add_argument("--imgsz", type=str, default="1440,808", help="Image size (width,height)")
     parser.add_argument("--device", default="0,1", help="GPU devices")
     parser.add_argument("--workers", type=int, default=79, help="Data loading workers")
     parser.add_argument("--name", help="Experiment name")
@@ -58,12 +58,14 @@ def main():
         
     elif args.config == "custom":
         print("Starting custom training configuration...")
+        # Parse imgsz string to list
+        imgsz = [int(x) for x in args.imgsz.split(',')] if ',' in args.imgsz else int(args.imgsz)
         results = train_detector(
             data_yaml=args.data,
             model=args.model,
             epochs=args.epochs,
             batch=args.batch,
-            imgsz=args.imgsz,
+            imgsz=imgsz,
             device=args.device,
             workers=args.workers,
             name=args.name,

@@ -35,7 +35,7 @@ def main():
                        help="Multiple formats for deployment mode")
     
     # Export parameters
-    parser.add_argument("--imgsz", type=int, default=1440, help="Image size")
+    parser.add_argument("--imgsz", type=str, default="1440,808", help="Image size (width,height)")
     parser.add_argument("--device", default="cpu", help="Export device")
     parser.add_argument("--half", action="store_true", help="Use FP16 precision")
     parser.add_argument("--dynamic", action="store_true", help="Dynamic input shapes (ONNX)")
@@ -61,10 +61,13 @@ def main():
             
         print(f"Exporting model: {args.model} to {args.format.upper()}")
         
+        # Parse imgsz string to list
+        imgsz = [int(x) for x in args.imgsz.split(',')] if ',' in args.imgsz else int(args.imgsz)
+        
         results = export_detector(
             model_path=args.model,
             format=args.format,
-            imgsz=args.imgsz,
+            imgsz=imgsz,
             device=args.device,
             half=args.half,
             dynamic=args.dynamic,

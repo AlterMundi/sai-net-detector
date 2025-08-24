@@ -42,7 +42,7 @@ def main():
         workers=8,  # Conservative for testing
         name=args.name,
         cache=args.cache,
-        imgsz=1440,
+        imgsz=[1440, 808],
         interactive=not args.non_interactive  # Allow disabling prompts
     )
     

@@ -79,7 +79,7 @@ results = train_optimal_forced_ddp()
 ```
 
 #### Validated Test Results (August 2025)
-- **Test Configuration**: 1 epoch, batch=60, device=0,1, 1440×1440 resolution
+- **Test Configuration**: 1 epoch, batch=60, device=0,1, 1440×808 resolution
 - **Hardware**: 2×A100-40GB, ForcedDDP mode, 341GB RAM cache
 - **Results**: mAP@0.5: **47.8%**, Precision: 50.1%, Recall: 48.7%
 - **Performance**: 2.5ms inference, 1.85 it/s training speed
@@ -96,7 +96,7 @@ results = train_optimal_forced_ddp()
 - **Augmentation**: HSV (h=0.015, s=0.7, v=0.4), geometric transforms, mosaic/mixup
 
 **Hardware Parameters (SAI-Net optimized for 2×A100, 500GB RAM):**
-- **Resolution**: 1440×1440 (high-resolution for small smoke detection)
+- **Resolution**: 1440×808 (high-resolution rectangular for small smoke detection)
 - **Batch Size**: 60 (proven stable in successful test, ~18GB per GPU)
 - **Workers**: 8 (proven stable, prevents spawn explosion)
 - **DDP Mode**: ForcedDDP with interactive fallback
@@ -127,7 +127,7 @@ yolo export model=runs/detect/sai_yolov8s_optimal_1440x808/weights/best.pt forma
 - Compatible with Ultralytics YOLO training pipeline
 
 ### Model Hyperparameters
-- **YOLOv8s**: `imgsz=1440`, `batch=60` (proven stable), BF16 mixed precision
+- **YOLOv8s**: `imgsz=[1440, 808]`, `batch=60` (proven stable), BF16 mixed precision
 - **Hardware optimized**: 2×A100-40GB GPUs (32.2GB VRAM per GPU), 8 workers
 - **Training time**: ~42 hours for full 150-epoch training (tested: 16.7 min/epoch)
 

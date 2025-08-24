@@ -31,7 +31,7 @@ def main():
     
     # Evaluation parameters
     parser.add_argument("--split", default="val", choices=["train", "val", "test"], help="Dataset split")
-    parser.add_argument("--imgsz", type=int, default=1440, help="Image size")
+    parser.add_argument("--imgsz", type=str, default="1440,808", help="Image size (width,height)")
     parser.add_argument("--batch", type=int, default=32, help="Batch size")
     parser.add_argument("--device", default="0", help="GPU device")
     parser.add_argument("--conf", type=float, default=0.001, help="Confidence threshold")
@@ -55,11 +55,13 @@ def main():
             sys.exit(1)
             
         print(f"Evaluating model: {args.model}")
+        # Parse imgsz string to list
+        imgsz = [int(x) for x in args.imgsz.split(',')] if ',' in args.imgsz else int(args.imgsz)
         results = evaluate_detector(
             model_path=args.model,
             data_yaml=args.data,
             split=args.split,
-            imgsz=args.imgsz,
+            imgsz=imgsz,
             batch=args.batch,
             device=args.device,
             conf=args.conf,

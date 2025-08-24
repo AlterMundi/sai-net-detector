@@ -20,7 +20,7 @@ def evaluate_detector(
     model_path: Union[str, Path],
     data_yaml: str = "configs/yolo/pyro_fasdd.yaml",
     split: str = "val",
-    imgsz: int = 1440,
+    imgsz: list = [1440, 808],
     batch: int = 32,
     device: str = "0",
     conf: float = 0.001,
@@ -83,7 +83,7 @@ def evaluate_detector(
     logger.info(f"Model: {model_path}")
     logger.info(f"Dataset: {data_yaml}")
     logger.info(f"Split: {split}")
-    logger.info(f"Image size: {imgsz}x{imgsz}")
+    logger.info(f"Image size: {imgsz[0]}×{imgsz[1]}" if isinstance(imgsz, list) else f"Image size: {imgsz}×{imgsz}")
     logger.info(f"Batch size: {batch}")
     logger.info(f"Device: {device}")
     logger.info(f"Confidence threshold: {conf}")

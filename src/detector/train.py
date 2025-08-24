@@ -107,7 +107,7 @@ train_detector_forced_ddp = lambda *args, **kwargs: train_detector(*args, **kwar
 def train_detector(
     data_yaml: str = "configs/yolo/pyro_fasdd.yaml",
     model: str = "yolov8s.pt", 
-    imgsz: int = 1440,
+    imgsz: list = [1440, 808],
     epochs: int = 150,
     batch: int = 60,   # CORRECTED: Match exact successful test (60, not 120)
     device: str = "0,1",
@@ -330,12 +330,12 @@ def train_detector(
 def train_optimal():
     """
     Train detector with optimal configuration for 2×A100 GPUs, 500GB RAM
-    Resolution: 1440×1440, Batch: 60 (matches successful ForcedDDP test)
+    Resolution: 1440×808, Batch: 60 (matches successful ForcedDDP test)
     """
     return train_detector(
         data_yaml="configs/yolo/pyro_fasdd.yaml",
         model="yolov8s.pt",
-        imgsz=1440,  # High resolution for small smoke detection
+        imgsz=[1440, 808],  # High resolution rectangular for small smoke detection
         epochs=150,  # Full training cycle (test used 1 epoch)
         batch=60,    # EXACT MATCH: test used 60, not 120
         device="0,1",
@@ -379,11 +379,11 @@ def train_conservative():
     return train_detector(
         data_yaml="configs/yolo/pyro_fasdd.yaml",
         model="yolov8s.pt",
-        imgsz=960,
+        imgsz=[960, 540],  # Conservative rectangular resolution
         batch=64,
         workers=16,
         cache="disk",
-        name="sai_yolov8s_conservative_960x960"
+        name="sai_yolov8s_conservative_960x540"
     )
 
 def train_stage1_fasdd():
@@ -391,7 +391,7 @@ def train_stage1_fasdd():
     SAI-Net Two-Stage Training - Stage 1: FASDD Pre-training
     
     Multi-class training (fire + smoke) on FASDD dataset for diverse learning.
-    Uses validated hardware parameters: 1440x1440, batch=60, workers=8
+    Uses validated hardware parameters: 1440×808, batch=60, workers=8
     
     Returns:
         Training results dictionary with checkpoint path for Stage 2
@@ -399,7 +399,7 @@ def train_stage1_fasdd():
     return train_detector(
         data_yaml="configs/yolo/fasdd_stage1.yaml",
         model="yolov8s.pt",
-        imgsz=1440,          # Validated resolution for small object detection
+        imgsz=[1440, 808],   # Validated rectangular resolution for small object detection
         epochs=140,          # Stage 1: Longer training for diversity learning
         batch=60,            # Validated batch size (30×2 GPUs)
         device="0,1",        # 2×A100 DDP configuration
@@ -457,7 +457,7 @@ def train_stage2_pyrosdis(stage1_checkpoint: str = None):
     return train_detector(
         data_yaml="configs/yolo/pyro_stage2.yaml",
         model=stage1_checkpoint,  # Load Stage 1 checkpoint
-        imgsz=1440,          # Keep same resolution for consistency
+        imgsz=[1440, 808],   # Keep same rectangular resolution for consistency
         epochs=60,           # Stage 2: Shorter fine-tuning period
         batch=60,            # Same validated batch size
         device="0,1",        # Same DDP configuration

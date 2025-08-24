@@ -19,7 +19,7 @@ def setup_logging():
 def export_detector(
     model_path: Union[str, Path],
     format: str = "onnx",
-    imgsz: Union[int, List[int]] = 1440,
+    imgsz: Union[int, List[int]] = [1440, 808],
     half: bool = False,
     dynamic: bool = False,
     simplify: bool = True,

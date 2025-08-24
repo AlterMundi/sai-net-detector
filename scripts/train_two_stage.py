@@ -7,7 +7,7 @@ Implements the complete two-stage training approach:
 2. Stage 2: PyroSDIS single-class fine-tuning (smoke only)
 
 Based on the methodology from planentrenamientoyolov8.md with
-validated hardware configuration (2×A100, batch=60, workers=8, 1440×1440).
+validated hardware configuration (2×A100, batch=60, workers=8, 1440×808).
 """
 
 import sys
@@ -72,7 +72,7 @@ Examples:
     print("🚀 SAI-Net Two-Stage Training Workflow")
     print("=" * 60)
     print("📊 Configuration Summary:")
-    print(f"   Hardware: 2×A100-40GB DDP, 1440×1440 resolution")
+    print(f"   Hardware: 2×A100-40GB DDP, 1440×808 resolution")
     print(f"   Batch size: 60 (30×2 GPUs), Workers: 8")
     print(f"   Cache: RAM (~350GB), Mixed precision: AMP")
     print(f"   Datasets: FASDD (~95K) → PyroSDIS (~33K)")
@@ -133,7 +133,7 @@ Examples:
                 results = train_detector(
                     data_yaml="configs/yolo/fasdd_stage1.yaml",
                     model="yolov8s.pt",
-                    imgsz=1440,
+                    imgsz=[1440, 808],
                     epochs=test_epochs,  # Override epochs
                     batch=60,
                     device="0,1",
@@ -179,7 +179,7 @@ Examples:
                 results = train_detector(
                     data_yaml="configs/yolo/pyro_stage2.yaml",
                     model=checkpoint_path,
-                    imgsz=1440,
+                    imgsz=[1440, 808],
                     epochs=test_epochs,  # Override epochs
                     batch=60,
                     device="0,1",
