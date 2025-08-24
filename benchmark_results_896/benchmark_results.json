@@ -1,0 +1,50 @@
+{
+  "model_info": {
+    "architecture": "YOLOv8s",
+    "input_resolution": "896x896 (SACRED)",
+    "parameters": "<generator object Module.parameters at 0x7f7b8b246a40>",
+    "model_size_mb": 21.48136329650879,
+    "framework": "Ultralytics YOLO",
+    "precision": "FP32"
+  },
+  "validation_metrics": {
+    "mAP50": 0.7594760536048201,
+    "mAP50_95": 0.5016256271149225,
+    "precision": 0.7070323108192967,
+    "recall": 0.743531202435312,
+    "f1_score": 0.7248225664308652
+  },
+  "speed_metrics": {
+    "avg_inference_ms": 4.197385311126709,
+    "min_inference_ms": 4.104852676391602,
+    "max_inference_ms": 4.667043685913086,
+    "std_inference_ms": 0.08957598220828668,
+    "fps": 238.24355542226093,
+    "total_time_s": 0.420490026473999,
+    "runs": 100
+  },
+  "memory_metrics": {
+    "peak_memory_mb": 157.3974609375,
+    "current_memory_mb": 74.63916015625,
+    "device": "NVIDIA H200"
+  },
+  "grade": {
+    "final_score": 54.2247365111753,
+    "letter_grade": "B",
+    "description": "Acceptable - Close to SAI-Net target",
+    "component_scores": {
+      "mAP50": 65.70507566548928,
+      "mAP50_95": 37.703203389365314,
+      "precision": 41.406462163859345,
+      "recall": 48.7062404870624,
+      "speed": 100
+    },
+    "weights": {
+      "mAP50": 0.4,
+      "mAP50_95": 0.25,
+      "precision": 0.15,
+      "recall": 0.15,
+      "speed": 0.05
+    }
+  }
+}
