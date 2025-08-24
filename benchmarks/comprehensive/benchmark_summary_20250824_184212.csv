@@ -1,0 +1,3 @@
+test_category,test_name,metric,value,description
+accuracy,fasdd_test,mAP50,0.9056517209924269,FASDD test set (multi-class fire+smoke)
+accuracy,fasdd_val,mAP50,0.7904329308139146,FASDD validation set

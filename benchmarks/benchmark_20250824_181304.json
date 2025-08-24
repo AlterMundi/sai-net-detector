@@ -1,0 +1,19 @@
+{
+  "model_path": "runs/h200_stage1_fasdd7/weights/best.pt",
+  "timestamp": "2025-08-24T18:10:08.528233",
+  "model_size_mb": 42.798155784606934,
+  "device": "NVIDIA H200",
+  "mAP50": 0.9044674737596036,
+  "mAP50_95": 0.6679838627621715,
+  "precision": 0.904485713588838,
+  "recall": 0.8108955778652094,
+  "validation_time_sec": 174.90057468414307,
+  "images_per_sec": 0.011435068201530186,
+  "inference_time_ms": 4.989645481109619,
+  "fps": 200.41504026406614,
+  "batch_size": 1,
+  "image_size": [
+    896,
+    896
+  ]
+}
