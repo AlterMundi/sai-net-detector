@@ -136,7 +136,7 @@ def train_detector(
     copy_paste: float = 0.0,
     close_mosaic: int = 15,
     cache: str = "ram",
-    project: str = "/dev/shm/rrn/sai-net-detector/runs",
+    project: str = "runs",
     name: str = "sai_forceddp_test",
     save_period: int = -1,
     single_cls: bool = True,
@@ -366,7 +366,7 @@ def train_optimal():
         copy_paste=0.0,  # No copy-paste (can confuse smoke detection)
         close_mosaic=15, # Stop mosaic in last 15 epochs
         cache="ram",     # RAM caching for performance
-        project="/dev/shm/rrn/sai-net-detector/runs",
+        project="runs",
         name="sai_final_production_1440x808",
         single_cls=True  # Single smoke class detection
     )
@@ -430,7 +430,7 @@ def train_stage1_fasdd():
         copy_paste=0.0,      # No copy-paste for cleaner learning
         close_mosaic=15,     # Stop mosaic in last 15 epochs
         cache="ram",         # RAM caching for performance
-        project="/dev/shm/rrn/sai-net-detector/runs",
+        project="runs",
         name="sai_stage1_fasdd_multiclass",
         single_cls=False,    # Multi-class for Stage 1
         save_period=-1,      # Save only best and last
@@ -452,7 +452,7 @@ def train_stage2_pyrosdis(stage1_checkpoint: str = None):
     """
     # Auto-detect Stage 1 checkpoint if not provided
     if stage1_checkpoint is None:
-        stage1_checkpoint = "/dev/shm/rrn/sai-net-detector/runs/sai_stage1_fasdd_multiclass/weights/best.pt"
+        stage1_checkpoint = "runs/sai_stage1_fasdd_multiclass/weights/best.pt"
     
     return train_detector(
         data_yaml="configs/yolo/pyro_stage2.yaml",
@@ -488,7 +488,7 @@ def train_stage2_pyrosdis(stage1_checkpoint: str = None):
         copy_paste=0.0,      # No copy-paste
         close_mosaic=10,     # Earlier mosaic stop
         cache="ram",         # Same caching strategy
-        project="/dev/shm/rrn/sai-net-detector/runs",
+        project="runs",
         name="sai_stage2_pyrosdis_smoke_specialized",
         single_cls=True,     # Single-class for Stage 2
         save_period=-1,

@@ -65,7 +65,7 @@ Examples:
         parser.print_help()
         sys.exit(1)
     
-    if args.stage == 2 and not args.checkpoint and not Path("/dev/shm/rrn/sai-net-detector/runs/sai_stage1_fasdd_multiclass/weights/best.pt").exists():
+    if args.stage == 2 and not args.checkpoint and not Path("runs/sai_stage1_fasdd_multiclass/weights/best.pt").exists():
         print("❌ Error: Stage 2 requires Stage 1 checkpoint. Run Stage 1 first or provide --checkpoint")
         sys.exit(1)
     
@@ -165,7 +165,7 @@ Examples:
             if checkpoint_path:
                 print(f"📁 Using checkpoint: {checkpoint_path}")
             else:
-                checkpoint_path = "/dev/shm/rrn/sai-net-detector/runs/sai_stage1_fasdd_multiclass/weights/best.pt"
+                checkpoint_path = "runs/sai_stage1_fasdd_multiclass/weights/best.pt"
                 print(f"📁 Auto-detected checkpoint: {checkpoint_path}")
             
             # Test mode modifications

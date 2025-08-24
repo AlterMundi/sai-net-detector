@@ -2,15 +2,15 @@
 # SAI-Net Two-Stage Workflow - Stage 1 Configuration
 
 # FASDD Dataset Only - Multi-class (fire + smoke)
-train: /dev/shm/rrn/sai-net-detector/data/yolo/images/train
-val: /dev/shm/rrn/sai-net-detector/data/yolo/images/val
+train: data/yolo/images/train
+val: data/yolo/images/val
 
 # Multi-class configuration (maintain original FASDD classes)
 nc: 2                    # Two classes: fire and smoke
 names: ['fire', 'smoke'] # Original FASDD class names
 
 # Optional test set
-test: /dev/shm/rrn/sai-net-detector/data/yolo/images/test
+test: data/yolo/images/test
 
 # Dataset statistics for Stage 1
 # FASDD: ~95,314 images with fire and smoke bounding boxes

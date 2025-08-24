@@ -2,8 +2,8 @@
 # SAI-Net Two-Stage Workflow - Stage 2 Configuration
 
 # PyroSDIS Dataset Only - Single-class (smoke only)
-train: /dev/shm/rrn/sai-net-detector/data/raw/pyro-sdis/images/train
-val: /dev/shm/rrn/sai-net-detector/data/raw/pyro-sdis/images/val
+train: data/raw/pyro-sdis/images/train
+val: data/raw/pyro-sdis/images/val
 
 # Single-class configuration (smoke detection specialization)
 nc: 1                    # Single class: smoke only

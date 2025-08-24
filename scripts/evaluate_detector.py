@@ -81,7 +81,7 @@ def main():
         model_path = args.model
         if not model_path:
             # Try to find best model from experiment
-            runs_dir = Path("/dev/shm/rrn/sai-net-detector/runs/detect")
+            runs_dir = Path("runs/detect")
             experiment_dir = runs_dir / args.experiment
             model_path = experiment_dir / "weights" / "best.pt"
             

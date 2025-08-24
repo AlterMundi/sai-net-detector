@@ -152,7 +152,7 @@ def evaluate_detector(
 
 def evaluate_best_model(
     experiment_name: str = "sai_yolov8s_optimal_1440x808",
-    runs_dir: str = "/dev/shm/rrn/sai-net-detector/runs/detect"
+    runs_dir: str = "runs/detect"
 ) -> Dict[str, Any]:
     """
     Evaluate the best model from a training experiment

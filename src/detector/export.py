@@ -215,7 +215,7 @@ def export_for_deployment(
 
 def export_best_model(
     experiment_name: str = "sai_yolov8s_optimal_1440x808",
-    runs_dir: str = "/dev/shm/rrn/sai-net-detector/runs/detect",
+    runs_dir: str = "runs/detect",
     formats: List[str] = ["onnx", "torchscript"]
 ) -> Dict[str, Any]:
     """
