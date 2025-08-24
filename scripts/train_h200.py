@@ -21,11 +21,11 @@ def get_h200_config():
     return {
         # Model settings
         'device': 0,                # Single GPU
-        'imgsz': [1440, 808],       # Fixed resolution
+        'imgsz': 896,               # SAGRADO: 896 for small objects (was [1440, 808])
         
         # Memory-safe batch/workers
-        'batch': 96,                # Reduced for VRAM safety (was 128)
-        'workers': 8,               # Safe for 258GB RAM
+        'batch': 128,               # PRUEBA: Restored to 128 with sagrado resolution
+        'workers': 12,              # Optimized for 258GB RAM (12×4GB = 48GB)
         'cache': 'disk',            # CRITICAL: No RAM cache
         
         # Training settings

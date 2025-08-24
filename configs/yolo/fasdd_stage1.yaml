@@ -1,5 +1,6 @@
 # FASDD Stage 1: Pre-training (Multi-class as per training plan)
 # SAI-Net Two-Stage Workflow - Stage 1 Configuration
+# CONVERTED FROM COCO FOLLOWING SACRED METHODOLOGY - CLEAN DATASET
 
 # FASDD Dataset - Multi-class fire and smoke detection  
 train: /workspace/sai-net-detector/data/yolo/images/train
@@ -12,8 +13,8 @@ names: ['fire', 'smoke'] # Original FASDD class names
 # Optional test set
 test: /workspace/sai-net-detector/data/yolo/images/test
 
-# Dataset statistics for Stage 1
-# FASDD: ~95,314 images (73,297 fire + 53,080 smoke objects)
+# Dataset statistics for Stage 1 (CLEAN CONVERSION)
+# FASDD: 56,115 images (126,374 annotations) - 0 backgrounds, 0 corrupt
 # Multi-class training for diverse pattern learning
 # Objective: Learn diverse fire/smoke detection with rich variety
 # Expected output: Multi-class detector with good generalization
