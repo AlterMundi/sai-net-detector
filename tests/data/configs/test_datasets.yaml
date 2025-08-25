@@ -1,0 +1,94 @@
+# SAI-Net Detector Test Dataset Configuration
+# ⚠️ CRITICAL: Most datasets are NOT compatible with YOLO models without conversion!
+
+# Test Dataset Paths
+test_datasets:
+  base_path: "/root/sai-benchmark.old/RNA/data/raw"
+  
+  # ✅ COMPATIBLE: Ready for YOLO testing (images only - no labels needed for inference)
+  fasdd_images:
+    path: "/root/sai-benchmark.old/RNA/data/raw/fasdd/images"
+    type: "fire_smoke_detection"
+    format: "coco_images_only"  # Images: train/val/test dirs, Annotations: COCO JSON (not YOLO compatible)
+    classes: ["fire", "smoke"] 
+    description: "FASDD dataset - 63,546 train images (inference only - no YOLO labels)"
+    image_count: 63546
+    subsets: ["train", "val", "test"]
+    compatible: true
+    
+  figlib_images:
+    path: "/root/sai-benchmark.old/RNA/data/raw/figlib"
+    type: "classification_format"
+    format: "directory_classes"  # train/val/test -> smoke/cloud/other subdirs
+    classes: ["smoke", "cloud", "other"]
+    description: "FigLib dataset - directory-based classification format"
+    compatible: true
+    inference_only: true
+    
+  nemo_images:
+    path: "/root/sai-benchmark.old/RNA/data/raw/nemo/20-23_daytime_images"
+    type: "fire_detection"
+    format: "images_with_json"  # Images + separate JSON labels (not YOLO format)
+    description: "NEMO daytime images - wildfire detection"
+    compatible: true
+    inference_only: true
+    
+  # ✅ NEWLY FIXED: Now accessible datasets
+  dfire_images:
+    path: "/root/sai-benchmark.old/RNA/data/raw/D-Fire"
+    type: "fire_detection"
+    format: "directory_structure"  # train/test/images subdirs
+    classes: ["fire"]
+    description: "D-Fire dataset - fire detection images"
+    compatible: true
+    inference_only: true
+    subsets: ["train", "test"]
+    
+  # ❌ INCOMPATIBLE: Requires specialized conversion
+  pyronear_arrow:
+    path: "/root/sai-benchmark.old/RNA/data/raw/pyronear-2024"
+    type: "arrow_format"
+    format: "huggingface_arrow"  # Arrow files - requires HF datasets library
+    classes: ["smoke"]
+    description: "PyroNear-2024 - 33k+ samples in Arrow format, requires conversion"
+    compatible: false
+    reason: "Arrow format requires HuggingFace datasets library and conversion"
+    samples_train: 29537
+    samples_val: 4099
+    conversion_available: true
+
+# Model paths for benchmarking
+test_models:
+  production_final:
+    path: "runs/h200_stage2_pyrosdis3/weights/best.pt"
+    description: "Stage 2 Final - Production model (76.0% mAP@0.5)"
+    type: "single_class"
+    
+  stage1_baseline:
+    path: "runs/h200_stage1_fasdd7/weights/best.pt" 
+    description: "Stage 1 FASDD - Multi-class baseline (90.6% mAP@0.5)"
+    type: "multi_class"
+    
+  pretrained_yolov8s:
+    path: "yolov8s.pt"
+    description: "Pre-trained YOLOv8s baseline"
+    type: "coco_pretrained"
+    
+  yolov11n:
+    path: "yolo11n.pt"
+    description: "YOLOv11 nano - Efficiency comparison"
+    type: "coco_pretrained"
+
+# Test configurations
+test_config:
+  input_size: 896  # SACRED resolution
+  batch_size: 32   # Conservative for testing
+  confidence_threshold: 0.25
+  iou_threshold: 0.45
+  max_detections: 300
+  
+# Output paths
+results:
+  base_dir: "tests/benchmark/results"
+  timestamp_format: "%Y%m%d_%H%M%S"
+  formats: ["json", "csv", "html"]
